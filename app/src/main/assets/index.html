@@ -1,13 +1,16 @@
 <!DOCTYPE html>
 <!--
   Auditplan – Oberfläche
-  Version: 1.0.0 (2026-11-25)
+  Version: 1.1.0 (2026-11-26)
   Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
   Läuft in der Android-Hülle (window.AndroidBridge) und zum Ausprobieren auch im Browser.
   Versionshistorie:
     1.0.0 (2026-11-25) Erste Fassung: Auditliste, Import Auditzeiten.txt, Neu/Bearbeiten nach
                        den Regeln der 400.dotm (1 Auditor), Audit-Ansicht mit Uhr, Restzeit,
                        Scrollrad, erwarteten Dokumenten, Sonar 15/30/60 min, Gong 75 %/100 %.
+    1.1.0 (2026-11-26) Audit-Ansicht: oben zwei analoge Uhren (Uhrzeit mit Bogen des laufenden
+                       Kapitels; Timer mit Restzeit-Sektor und 75-%-Marke), darunter der Zeitplan
+                       als senkrechtes Wählrad (höher, 7 Zeilen sichtbar). Balkenanzeige entfällt.
 -->
 <html lang="de">
 <head>
@@ -56,6 +59,11 @@ label{display:block;font-size:13px;color:var(--leise);margin:8px 0 4px}
 .tagbalken.rot{background:#4a2326;color:#ffd2cf}
 .warn{color:var(--warn);font-size:14px}
 /* Audit */
+.uhren{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:4px 0}
+.uhren .zifferblatt{background:var(--karte);border-radius:var(--radius);padding:8px 8px 10px;text-align:center}
+.uhren svg{width:100%;height:auto;display:block}
+.uhren .unter{font-size:13px;color:var(--leise);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.uhren .unter strong{color:var(--text);font-size:15px;font-variant-numeric:tabular-nums}
 .uhr{font-size:56px;font-weight:300;text-align:center;letter-spacing:2px;font-variant-numeric:tabular-nums;margin:2px 0}
 .datum{text-align:center;color:var(--leise);font-size:14px;margin-top:-4px}
 .jetzt .abschnitt{font-size:20px;font-weight:600}
@@ -66,8 +74,8 @@ label{display:block;font-size:13px;color:var(--leise);margin:8px 0 4px}
 .balken b{position:absolute;left:75%;top:-2px;bottom:-2px;width:2px;background:var(--warn)}
 .zahlen{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;text-align:center;font-size:13px;color:var(--leise)}
 .zahlen strong{display:block;color:var(--text);font-size:17px;font-variant-numeric:tabular-nums}
-.radrahmen{position:relative;height:300px;overflow:hidden;border-radius:var(--radius);background:var(--karte)}
-.rad{height:100%;overflow-y:scroll;scroll-snap-type:y mandatory;perspective:600px;scrollbar-width:none;padding:124px 0}
+.radrahmen{position:relative;height:364px;overflow:hidden;border-radius:var(--radius);background:var(--karte)}
+.rad{height:100%;overflow-y:scroll;scroll-snap-type:y mandatory;perspective:600px;scrollbar-width:none;padding:156px 0}
 .rad::-webkit-scrollbar{display:none}
 .rz{height:52px;scroll-snap-align:center;display:flex;flex-direction:column;justify-content:center;padding:0 16px;
   transform-origin:center;transition:color .2s}
@@ -76,7 +84,7 @@ label{display:block;font-size:13px;color:var(--leise);margin:8px 0 4px}
 .rz.vorbei .t{color:var(--leise)}
 .rz.aktuell .t{color:var(--akzent);font-weight:600}
 .rz.pause .t{font-style:italic;color:var(--leise)}
-.radmitte{position:absolute;left:8px;right:8px;top:124px;height:52px;border-top:1px solid var(--linie);border-bottom:1px solid var(--linie);pointer-events:none}
+.radmitte{position:absolute;left:8px;right:8px;top:156px;height:52px;border-top:1px solid var(--linie);border-bottom:1px solid var(--linie);pointer-events:none}
 .radjetzt{position:absolute;right:10px;bottom:10px;padding:6px 10px;font-size:13px}
 .doku label.d{display:flex;gap:10px;align-items:center;color:var(--text);font-size:15px;margin:6px 0}
 .doku label.d.erledigt span{color:var(--leise);text-decoration:line-through}
@@ -145,15 +153,16 @@ textarea{min-height:110px}
 <!-- ================= Audit ================= -->
 <div class="screen" id="s-audit">
   <div class="kopf"><button id="a-zurueck">←</button><h1 id="a-titel"></h1><select id="a-aud" style="width:auto;display:none"></select></div>
-  <div class="uhr" id="a-uhr">--:--:--</div>
-  <div class="datum" id="a-datum"></div>
-  <div class="karte jetzt">
+  <div class="uhren">
+    <div class="zifferblatt"><svg id="a-uhr" viewBox="0 0 200 200"></svg>
+      <div class="unter"><strong id="a-digital">--:--</strong> · <span id="a-datum"></span></div></div>
+    <div class="zifferblatt"><svg id="a-timer" viewBox="0 0 200 200"></svg>
+      <div class="unter"><strong id="a-rest">--:--</strong> · <span id="a-bezug"></span></div></div>
+  </div>
+  <div class="karte jetzt" style="margin-top:6px">
     <div class="leise" id="a-status">Jetzt</div>
     <div class="abschnitt" id="a-abschnitt">–</div>
     <div class="leise" id="a-zeit"></div>
-    <div class="rest" id="a-rest">--:--</div>
-    <div class="balken"><i id="a-balken" style="width:0"></i><b></b></div>
-    <div class="leise" id="a-bezug" style="text-align:center"></div>
     <div class="zahlen" style="margin-top:8px">
       <div>Rest Tag<strong id="a-resttag">–</strong></div>
       <div>Rest Audit<strong id="a-restaudit">–</strong></div>
@@ -524,40 +533,45 @@ function fortschritt(jetzt) {
   var ges = 0, getan = 0;
   teile.forEach(function (x) { ges += x.bis - x.von; if (x.bis <= jetzt) getan += x.bis - x.von; else if (x.von <= jetzt) getan += jetzt - x.von; });
   var kap = l.filter(function (x) { return x.art === 'kapitel' && (e.gruppe >= 0 ? x.gruppe === e.gruppe : x.nr === e.nr); });
-  return { e: e, anteil: ges ? getan / ges : 0, kapEnde: kap[kap.length - 1].bis };
+  return { e: e, anteil: ges ? getan / ges : 0, kapEnde: kap[kap.length - 1].bis, restBezug: ges - getan };
 }
 
 function auditAnzeigen(zentrieren) {
   var a = auditById(aktuell.id); if (!a) return;
   if (aktuell.gebaut !== aktuell.id + '/' + aktuell.aud) { radBauen(); zentrieren = true; }
   var jetzt = Date.now(), d = new Date(jetzt), l = aktuell.liste;
-  $('a-uhr').textContent = L.pad(d.getHours()) + ':' + L.pad(d.getMinutes()) + ':' + L.pad(d.getSeconds());
+  $('a-digital').textContent = L.pad(d.getHours()) + ':' + L.pad(d.getMinutes());
   $('a-datum').textContent = L.datumText(d);
   var f = fortschritt(jetzt), akt = aktuellerIndex(jetzt), e = l[akt];
   var restEl = $('a-rest');
+  var bogen = f ? { von: f.e.von, bis: f.kapEnde } : (e && e.von <= jetzt && jetzt < e.bis ? { von: e.von, bis: e.bis } : null);
+  uhrZeichnen(d, bogen);
   if (!l.length) { $('a-abschnitt').textContent = 'Kein Zeitplan'; return; }
   if (f) {
     $('a-status').textContent = 'Jetzt';
     $('a-abschnitt').textContent = f.e.titel.replace(/\s*\(Teil \d+\)$/, '');
     $('a-zeit').textContent = 'bis ' + hm(f.kapEnde);
     restEl.textContent = dauer(f.kapEnde - jetzt);
-    restEl.classList.toggle('w75', f.anteil >= 0.75);
-    $('a-balken').style.width = Math.min(100, f.anteil * 100).toFixed(1) + '%';
-    $('a-balken').style.background = f.anteil >= 0.75 ? 'var(--warn)' : 'var(--akzent)';
-    $('a-bezug').textContent = Math.floor(f.anteil * 100) + ' % ' + ({ kapitel: 'des Kapitels', tag: 'des Audittags', audit: 'des Audits' })[daten.einst.bezug];
+    var bez = ({ kapitel: 'Kapitel', tag: 'Audittag', audit: 'Audit' })[daten.einst.bezug];
+    $('a-bezug').textContent = bez + ' ' + Math.floor(f.anteil * 100) + ' %';
+    timerZeichnen(f.anteil, dauer(f.restBezug), f.anteil >= 0.75 ? 'var(--warn)' : 'var(--akzent)', true);
   } else {
-    restEl.classList.remove('w75'); $('a-balken').style.width = '0';
     if (e && e.art === 'pause' && jetzt >= e.von && jetzt < e.bis) {
       $('a-status').textContent = 'Pause'; $('a-abschnitt').textContent = 'Mittagspause';
       $('a-zeit').textContent = 'bis ' + hm(e.bis); restEl.textContent = dauer(e.bis - jetzt);
+      $('a-bezug').textContent = 'Pause';
+      timerZeichnen((jetzt - e.von) / (e.bis - e.von), dauer(e.bis - jetzt), 'var(--leise)', false);
     } else if (e && e.von > jetzt) {
       $('a-status').textContent = 'Als Nächstes'; $('a-abschnitt').textContent = e.titel;
       $('a-zeit').textContent = 'Beginn ' + (new Date(e.von).toDateString() === d.toDateString() ? '' : L.datumText(new Date(e.von)) + ' ') + hm(e.von);
       restEl.textContent = dauer(e.von - jetzt);
+      $('a-bezug').textContent = 'bis Beginn';
+      timerZeichnen(0, hm(e.von), 'var(--akzent)', true);
     } else {
       $('a-status').textContent = 'Ende'; $('a-abschnitt').textContent = 'Audit beendet'; $('a-zeit').textContent = ''; restEl.textContent = '0:00';
+      $('a-bezug').textContent = 'Ende';
+      timerZeichnen(1, 'Ende', 'var(--leise)', false);
     }
-    $('a-bezug').textContent = '';
   }
   // Rest Tag / Audit (nur Kapitelzeit)
   var heute = l.filter(function (x) { return new Date(x.von).toDateString() === d.toDateString(); });
@@ -571,8 +585,74 @@ function auditAnzeigen(zentrieren) {
   var lauf = istLaufend();
   $('a-start').textContent = lauf ? 'Audit beenden' : 'Audit starten';
   $('a-start').className = lauf ? 'gefahr' : 'haupt';
-  if (zentrieren || (aktuell.ruhe && jetzt - aktuell.ruhe > 10000)) { aktuell.ruhe = 0; radAuf(akt, !zentrieren); }
+  // Rad folgt dem aktuellen Kapitel, außer der Nutzer hat in den letzten 10 s gescrollt
+  if (zentrieren || ((!aktuell.ruhe || jetzt - aktuell.ruhe > 10000) && aktuell.gewaehlt !== akt)) { aktuell.ruhe = 0; radAuf(akt, !zentrieren); }
   radStil();
+}
+
+// ---------------------------------------------------------------- Analoge Uhren
+// Winkel in Grad, 0 = 12 Uhr, im Uhrzeigersinn
+function punkt(w, r) { var a = (w - 90) * Math.PI / 180; return [100 + r * Math.cos(a), 100 + r * Math.sin(a)]; }
+function bogenPfad(w1, w2, r) {
+  if (w2 - w1 >= 359.9) return 'M100,' + (100 - r) + 'a' + r + ',' + r + ' 0 1,1 0,' + (2 * r) + 'a' + r + ',' + r + ' 0 1,1 0,' + (-2 * r);
+  var p1 = punkt(w1, r), p2 = punkt(w2, r);
+  return 'M' + p1[0].toFixed(2) + ',' + p1[1].toFixed(2) + 'A' + r + ',' + r + ' 0 ' + (w2 - w1 > 180 ? 1 : 0) + ',1 ' + p2[0].toFixed(2) + ',' + p2[1].toFixed(2);
+}
+function sektor(w1, w2, r) {
+  if (w2 - w1 >= 359.9) return '<circle cx="100" cy="100" r="' + r + '"';
+  var p1 = punkt(w1, r), p2 = punkt(w2, r);
+  return '<path d="M100,100L' + p1[0].toFixed(2) + ',' + p1[1].toFixed(2) + 'A' + r + ',' + r + ' 0 ' + (w2 - w1 > 180 ? 1 : 0) + ',1 ' + p2[0].toFixed(2) + ',' + p2[1].toFixed(2) + 'Z"';
+}
+function zeiger(w, r, breite, farbe, hinten) {
+  var p = punkt(w, r), q = punkt(w + 180, hinten || 0);
+  return '<line x1="' + q[0].toFixed(2) + '" y1="' + q[1].toFixed(2) + '" x2="' + p[0].toFixed(2) + '" y2="' + p[1].toFixed(2) +
+    '" stroke="' + farbe + '" stroke-width="' + breite + '" stroke-linecap="round"/>';
+}
+function striche(lang) {
+  var s = '';
+  for (var i = 0; i < 60; i++) {
+    var gross = i % 5 === 0, a = punkt(i * 6, 92), b = punkt(i * 6, gross ? (lang ? 80 : 84) : 88);
+    s += '<line x1="' + a[0].toFixed(2) + '" y1="' + a[1].toFixed(2) + '" x2="' + b[0].toFixed(2) + '" y2="' + b[1].toFixed(2) +
+      '" stroke="' + (gross ? 'var(--text)' : 'var(--linie)') + '" stroke-width="' + (gross ? 3 : 1.5) + '"/>';
+  }
+  return s;
+}
+var strichCache = null;
+/** Uhrzeit: Stunden-, Minuten-, Sekundenzeiger; außen der Bogen des laufenden Kapitels (12-h-Zifferblatt). */
+function uhrZeichnen(d, bogen) {
+  strichCache = strichCache || striche(true);
+  var s = d.getSeconds(), m = d.getMinutes() + s / 60, h = (d.getHours() % 12) + m / 60;
+  var svg = '<circle cx="100" cy="100" r="96" fill="var(--karte2)"/>';
+  if (bogen) {
+    var a = new Date(bogen.von), b = new Date(bogen.bis);
+    var w1 = ((a.getHours() % 12) * 60 + a.getMinutes()) / 2, w2 = w1 + Math.min(719, (bogen.bis - bogen.von) / 60000) / 2;
+    var wJ = ((d.getHours() % 12) * 60 + m) / 2; if (wJ < w1) wJ += 360;
+    svg += '<path d="' + bogenPfad(w1, w2, 96) + '" fill="none" stroke="var(--linie)" stroke-width="7"/>';
+    if (wJ > w1) svg += '<path d="' + bogenPfad(w1, Math.min(w2, wJ), 96) + '" fill="none" stroke="var(--akzent)" stroke-width="7"/>';
+  }
+  svg += strichCache;
+  svg += zeiger(h * 30, 50, 6, 'var(--text)', 10) + zeiger(m * 6, 74, 4, 'var(--text)', 12) + zeiger(s * 6, 82, 1.6, 'var(--rot)', 18);
+  svg += '<circle cx="100" cy="100" r="5" fill="var(--rot)"/>';
+  $('a-uhr').innerHTML = svg;
+}
+/** Timer: Zifferblatt = ganzer Bezug (Kapitel/Tag/Audit); farbiger Sektor = verbleibende Zeit, 75-%-Marke bei 9 Uhr. */
+function timerZeichnen(anteil, text, farbe, marke) {
+  anteil = Math.max(0, Math.min(1, anteil || 0));
+  var w = anteil * 360;
+  var svg = '<circle cx="100" cy="100" r="96" fill="var(--karte2)"/>';
+  if (w < 359.9) svg += sektor(w, 360, 90) + ' fill="' + farbe + '" fill-opacity="0.85"/>';
+  for (var i = 0; i < 4; i++) {
+    var p = punkt(i * 90, 96), q = punkt(i * 90, 82);
+    svg += '<line x1="' + p[0] + '" y1="' + p[1] + '" x2="' + q[0] + '" y2="' + q[1] + '" stroke="var(--text)" stroke-width="3"/>';
+  }
+  if (marke) {
+    var a = punkt(270, 98), b = punkt(270, 70);
+    svg += '<line x1="' + a[0] + '" y1="' + a[1] + '" x2="' + b[0] + '" y2="' + b[1] + '" stroke="var(--warn)" stroke-width="5" stroke-linecap="round"/>';
+  }
+  svg += zeiger(w, 88, 3, 'var(--text)', 0);
+  svg += '<circle cx="100" cy="100" r="34" fill="var(--karte)"/>';
+  svg += '<text x="100" y="108" text-anchor="middle" font-size="' + (text.length > 5 ? 18 : (text.length > 4 ? 21 : 24)) + '" font-weight="600" fill="var(--text)" style="font-variant-numeric:tabular-nums">' + esc(text) + '</text>';
+  $('a-timer').innerHTML = svg;
 }
 
 // ---------------------------------------------------------------- Töne / Dienst
