@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<!--
+  Auditplan – Oberfläche
+  Version: 1.0.0 (2026-11-25)
+  Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
+  Läuft in der Android-Hülle (window.AndroidBridge) und zum Ausprobieren auch im Browser.
+  Versionshistorie:
+    1.0.0 (2026-11-25) Erste Fassung: Auditliste, Import Auditzeiten.txt, Neu/Bearbeiten nach
+                       den Regeln der 400.dotm (1 Auditor), Audit-Ansicht mit Uhr, Restzeit,
+                       Scrollrad, erwarteten Dokumenten, Sonar 15/30/60 min, Gong 75 %/100 %.
+-->
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#101418">
+<title>Auditplan</title>
+<style>
+:root{--bg:#101418;--karte:#1a2026;--karte2:#222a31;--linie:#2e3840;--text:#e8edf1;--leise:#8e9aa4;
+  --akzent:#37c6d9;--warn:#f0b43c;--rot:#f0625a;--gruen:#5fd38d;--radius:14px}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font:16px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button{font:inherit;color:inherit;border:0;border-radius:10px;background:var(--karte2);padding:10px 14px;cursor:pointer}
+button.haupt{background:var(--akzent);color:#062a30;font-weight:600}
+button.gefahr{background:#4a2326;color:#ffd2cf}
+button:disabled{opacity:.4}
+input,select,textarea{font:inherit;color:var(--text);background:var(--karte2);border:1px solid var(--linie);border-radius:8px;padding:8px 10px;width:100%}
+input[type=checkbox]{width:22px;height:22px;accent-color:var(--akzent);padding:0}
+input[type=range]{padding:0;accent-color:var(--akzent)}
+label{display:block;font-size:13px;color:var(--leise);margin:8px 0 4px}
+.screen{display:none;padding:12px 12px 90px;max-width:760px;margin:0 auto}
+.screen.an{display:block}
+.kopf{display:flex;align-items:center;gap:10px;margin:4px 0 12px}
+.kopf h1{font-size:20px;margin:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kopf button{padding:8px 12px}
+.karte{background:var(--karte);border-radius:var(--radius);padding:14px;margin:10px 0}
+.leise{color:var(--leise);font-size:13px}
+.reihe{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.reihe>*{flex:1}
+.raster{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.liste-audit{display:flex;flex-direction:column;gap:6px}
+.liste-audit .titel{font-weight:600;font-size:17px}
+.badge{display:inline-block;background:var(--akzent);color:#062a30;border-radius:6px;padding:1px 6px;font-size:12px;font-weight:600;margin-left:6px}
+.knopfreihe{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.knopfreihe button{padding:7px 10px;font-size:14px}
+/* Editor */
+.posten{display:grid;grid-template-columns:28px 1fr 74px 64px;gap:6px;align-items:center;padding:5px 0;border-bottom:1px solid var(--linie)}
+.posten .name{font-size:14px}
+.posten input[type=text]{text-align:right;padding:6px}
+.posten .pfeile{display:flex;gap:2px}
+.posten .pfeile button{padding:4px 7px;font-size:13px}
+.posten.aus .name{color:var(--leise);text-decoration:line-through}
+.planzeile{display:grid;grid-template-columns:96px 1fr 44px;gap:6px;font-size:14px;padding:3px 0}
+.planzeile.pause{color:var(--leise);font-style:italic}
+.tagbalken{background:var(--karte2);border-radius:6px;padding:4px 8px;font-size:13px;margin:6px 0}
+.tagbalken.rot{background:#4a2326;color:#ffd2cf}
+.warn{color:var(--warn);font-size:14px}
+/* Audit */
+.uhr{font-size:56px;font-weight:300;text-align:center;letter-spacing:2px;font-variant-numeric:tabular-nums;margin:2px 0}
+.datum{text-align:center;color:var(--leise);font-size:14px;margin-top:-4px}
+.jetzt .abschnitt{font-size:20px;font-weight:600}
+.rest{font-size:44px;font-weight:600;text-align:center;font-variant-numeric:tabular-nums;margin:6px 0 2px}
+.rest.w75{color:var(--warn)}
+.balken{position:relative;height:12px;background:var(--karte2);border-radius:6px;overflow:hidden;margin:6px 0}
+.balken i{position:absolute;left:0;top:0;bottom:0;background:var(--akzent);border-radius:6px}
+.balken b{position:absolute;left:75%;top:-2px;bottom:-2px;width:2px;background:var(--warn)}
+.zahlen{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;text-align:center;font-size:13px;color:var(--leise)}
+.zahlen strong{display:block;color:var(--text);font-size:17px;font-variant-numeric:tabular-nums}
+.radrahmen{position:relative;height:300px;overflow:hidden;border-radius:var(--radius);background:var(--karte)}
+.rad{height:100%;overflow-y:scroll;scroll-snap-type:y mandatory;perspective:600px;scrollbar-width:none;padding:124px 0}
+.rad::-webkit-scrollbar{display:none}
+.rz{height:52px;scroll-snap-align:center;display:flex;flex-direction:column;justify-content:center;padding:0 16px;
+  transform-origin:center;transition:color .2s}
+.rz .t{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rz .u{font-size:12px;color:var(--leise)}
+.rz.vorbei .t{color:var(--leise)}
+.rz.aktuell .t{color:var(--akzent);font-weight:600}
+.rz.pause .t{font-style:italic;color:var(--leise)}
+.radmitte{position:absolute;left:8px;right:8px;top:124px;height:52px;border-top:1px solid var(--linie);border-bottom:1px solid var(--linie);pointer-events:none}
+.radjetzt{position:absolute;right:10px;bottom:10px;padding:6px 10px;font-size:13px}
+.doku label.d{display:flex;gap:10px;align-items:center;color:var(--text);font-size:15px;margin:6px 0}
+.doku label.d.erledigt span{color:var(--leise);text-decoration:line-through}
+.segmente{display:flex;gap:4px}
+.segmente button{flex:1;padding:8px 4px}
+.segmente button.an{background:var(--akzent);color:#062a30;font-weight:600}
+details summary{cursor:pointer;padding:6px 0;color:var(--leise)}
+.unten{position:fixed;left:0;right:0;bottom:0;background:linear-gradient(transparent,var(--bg) 30%);padding:18px 12px 14px}
+.unten .innen{max-width:760px;margin:0 auto;display:flex;gap:8px}
+.unten button{flex:1;padding:14px;font-size:17px}
+#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#33404a;color:#fff;padding:10px 16px;border-radius:10px;
+  font-size:14px;opacity:0;transition:opacity .3s;pointer-events:none;max-width:90%;text-align:center;z-index:9}
+#toast.an{opacity:1}
+textarea{min-height:110px}
+</style>
+</head>
+<body>
+
+<!-- ================= Auditliste ================= -->
+<div class="screen an" id="s-liste">
+  <div class="kopf"><h1>Auditplan</h1><button id="b-doku" title="Erwartete Dokumente">Dokumente</button></div>
+  <div class="reihe">
+    <button class="haupt" id="b-neu">+ Neues Audit</button>
+    <button id="b-import">Import .txt</button>
+  </div>
+  <input type="file" id="f-import" accept=".txt,text/plain" style="display:none">
+  <div id="liste" class="liste-audit"></div>
+  <div class="karte leise">
+    <div>Import: Arbeitsstand der 400.dotm (Auditzeiten.txt, „Save“). Die Auditzeiten bleiben nur auf diesem Gerät.</div>
+    <div class="knopfreihe"><button id="b-probe">Probelauf (10 min)</button></div>
+    <div id="version" style="margin-top:8px"></div>
+  </div>
+</div>
+
+<!-- ================= Neu / Bearbeiten ================= -->
+<div class="screen" id="s-edit">
+  <div class="kopf"><button id="e-zurueck">←</button><h1 id="e-titel">Neues Audit</h1></div>
+  <div class="karte">
+    <label>Kunde / Auftrag</label><input id="e-kunde" type="text">
+    <div class="raster">
+      <div><label>Auditzeit (h)</label><input id="e-zeit" type="text" inputmode="decimal"></div>
+      <div><label>Audittyp</label><select id="e-typ"><option>1. ÜA</option><option>2. ÜA</option><option>Rezert</option></select></div>
+      <div><label>Auditstart</label><input id="e-start" type="date"></div>
+      <div><label>Startzeit</label><input id="e-startzeit" type="text" value="09:00"></div>
+      <div><label>Tagesbeginn</label><input id="e-beginn" type="text" value="09:00"></div>
+      <div><label>Tagesende</label><input id="e-ende" type="text" value="17:30"></div>
+      <div><label>Mittagspause (h)</label><input id="e-pause" type="text" value="0,5" inputmode="decimal"></div>
+      <div><label>7.3 ausgeschlossen</label><input id="e-nodev" type="checkbox"></div>
+    </div>
+    <label>Ausschlüsse / Nichtanwendbarkeiten (Komma)</label><input id="e-excl" type="text">
+  </div>
+  <div class="karte">
+    <div class="reihe"><strong style="flex:3">Kapitel</strong><button id="e-vorschlag" style="flex:1">Reset</button></div>
+    <div class="leise" id="e-meldung"></div>
+    <div id="e-posten"></div>
+    <div class="leise" id="e-summe" style="margin-top:8px"></div>
+  </div>
+  <div class="karte">
+    <strong>Zeitplan</strong>
+    <div id="e-warn"></div>
+    <div id="e-plan"></div>
+  </div>
+  <div class="unten"><div class="innen"><button id="e-abbrechen">Abbrechen</button><button class="haupt" id="e-speichern">Speichern</button></div></div>
+</div>
+
+<!-- ================= Audit ================= -->
+<div class="screen" id="s-audit">
+  <div class="kopf"><button id="a-zurueck">←</button><h1 id="a-titel"></h1><select id="a-aud" style="width:auto;display:none"></select></div>
+  <div class="uhr" id="a-uhr">--:--:--</div>
+  <div class="datum" id="a-datum"></div>
+  <div class="karte jetzt">
+    <div class="leise" id="a-status">Jetzt</div>
+    <div class="abschnitt" id="a-abschnitt">–</div>
+    <div class="leise" id="a-zeit"></div>
+    <div class="rest" id="a-rest">--:--</div>
+    <div class="balken"><i id="a-balken" style="width:0"></i><b></b></div>
+    <div class="leise" id="a-bezug" style="text-align:center"></div>
+    <div class="zahlen" style="margin-top:8px">
+      <div>Rest Tag<strong id="a-resttag">–</strong></div>
+      <div>Rest Audit<strong id="a-restaudit">–</strong></div>
+      <div>Nächster Ton<strong id="a-ton">–</strong></div>
+    </div>
+  </div>
+  <div class="radrahmen"><div class="rad" id="a-rad"></div><div class="radmitte"></div><button class="radjetzt" id="a-jetzt">Jetzt</button></div>
+  <div class="karte doku">
+    <div class="leise">Erwartete Dokumente</div>
+    <div style="font-weight:600" id="a-dtitel"></div>
+    <div id="a-doks"></div>
+  </div>
+  <div class="karte">
+    <details id="a-einst">
+      <summary>Töne und Anzeige</summary>
+      <label>Sonar</label>
+      <div class="segmente" id="a-sonar"><button data-v="0">Aus</button><button data-v="15">15 min</button><button data-v="30">30 min</button><button data-v="60">60 min</button></div>
+      <label>Gong 75 % und 100 % bezogen auf</label>
+      <div class="segmente" id="a-gbezug"><button data-v="kapitel">Kapitel</button><button data-v="tag">Audittag</button><button data-v="audit">Gesamtaudit</button></div>
+      <label>Lautstärke Sonar</label><input type="range" id="a-lsonar" min="0.05" max="1" step="0.05">
+      <label>Lautstärke Gong</label><input type="range" id="a-lgong" min="0.05" max="1" step="0.05">
+      <div class="reihe" style="margin-top:10px">
+        <label style="display:flex;gap:8px;align-items:center;margin:0;color:var(--text)"><input type="checkbox" id="a-vib"> Vibration</label>
+        <label style="display:flex;gap:8px;align-items:center;margin:0;color:var(--text)"><input type="checkbox" id="a-schirm"> Bildschirm an</label>
+      </div>
+      <div class="knopfreihe"><button id="a-tsonar">Test Sonar</button><button id="a-tgong">Test Gong</button></div>
+      <div class="leise" style="margin-top:8px">Die Töne laufen über die Wecker-Lautstärke von Android, auch bei Lautlos.</div>
+    </details>
+  </div>
+  <div class="unten"><div class="innen"><button class="haupt" id="a-start">Audit starten</button></div></div>
+</div>
+
+<!-- ================= Dokumente-Vorgaben ================= -->
+<div class="screen" id="s-doku">
+  <div class="kopf"><button id="d-zurueck">←</button><h1>Erwartete Dokumente</h1></div>
+  <div class="leise">Eine Zeile je Dokument. Gilt für alle Audits; Unterpunkte (z. B. 7.5.6) zeigen die Dokumente ihres Kapitels.</div>
+  <div id="d-liste"></div>
+  <div class="unten"><div class="innen"><button id="d-vorgabe">Vorbelegung</button><button class="haupt" id="d-speichern">Speichern</button></div></div>
+</div>
+
+<div id="toast"></div>
+<script src="logik.js"></script>
+<script>
+'use strict';
+var L = window.Logik;
+var BR = window.AndroidBridge || null;
+var SPEICHER = 'auditplan.daten';
+
+// ---------------------------------------------------------------- Daten
+var daten = laden();
+function laden() {
+  var d = null;
+  try { d = JSON.parse(localStorage.getItem(SPEICHER) || 'null'); } catch (e) { console.log('laden | Fehler ' + e); }
+  d = d || {};
+  d.audits = d.audits || [];
+  d.doks = d.doks || {};
+  d.einst = Object.assign({ intervall: 30, bezug: 'kapitel', anteilSonar: 0.5, anteilGong: 1, vibration: true, schirm: true }, d.einst || {});
+  return d;
+}
+function sichern() {
+  try { localStorage.setItem(SPEICHER, JSON.stringify(daten)); } catch (e) { toast('Speichern fehlgeschlagen'); console.log('sichern | ' + e); }
+}
+function $(id) { return document.getElementById(id); }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+function toast(t) { var e = $('toast'); e.textContent = t; e.classList.add('an'); clearTimeout(toast.t); toast.t = setTimeout(function () { e.classList.remove('an'); }, 2600); }
+function neueId() { return 'a' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+function auditById(id) { return daten.audits.filter(function (a) { return a.id === id; })[0] || null; }
+function heuteIso() { var d = new Date(); return d.getFullYear() + '-' + L.pad(d.getMonth() + 1) + '-' + L.pad(d.getDate()); }
+function dauer(ms) {
+  if (ms < 0) ms = 0;
+  var s = Math.floor(ms / 1000), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60;
+  return (h > 0 ? h + ':' + L.pad(m) : m) + ':' + L.pad(x);
+}
+function hm(ms) { var d = new Date(ms); return L.pad(d.getHours()) + ':' + L.pad(d.getMinutes()); }
+function dokText(key) { var k = L.dokKey(key); return daten.doks[k] !== undefined ? daten.doks[k] : (L.DOKUMENTE[k] || ''); }
+
+// ---------------------------------------------------------------- Navigation
+var ansicht = 'liste';
+function zeige(n) {
+  ['liste', 'edit', 'audit', 'doku'].forEach(function (x) { $('s-' + x).classList.toggle('an', x === n); });
+  ansicht = n; window.scrollTo(0, 0);
+  if (n !== 'audit') schirm(false);
+}
+// Zurück-Taste von Android: true = in der App zurückgegangen
+function zurueck() {
+  if (ansicht === 'liste') return false;
+  if (ansicht === 'edit' && edit.vonAudit) { oeffneAudit(edit.vonAudit); return true; }
+  zeigeListe(); return true;
+}
+function appWiederDa() { if (ansicht === 'audit') auditAnzeigen(true); if (ansicht === 'liste') zeigeListe(); }
+
+// ---------------------------------------------------------------- Liste
+function laufend() {
+  if (BR) { try { var s = BR.auditStatus(); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
+  return browserLauf ? browserLauf.plan : null;
+}
+function zeigeListe() {
+  var lauf = laufend();
+  var html = '';
+  daten.audits.slice().sort(function (a, b) { return (a.kopf.start || '').localeCompare(b.kopf.start || ''); }).forEach(function (a) {
+    var tage = a.plan.tage.length || (a.plan.zeilen.length ? a.plan.zeilen[a.plan.zeilen.length - 1].tag : 0);
+    html += '<div class="karte"><div class="titel">' + esc(a.name) + (lauf && lauf.id === a.id ? '<span class="badge">läuft</span>' : '') + '</div>' +
+      '<div class="leise">' + esc(a.kopf.typ || '') + ' · ' + esc(L.isoNachDe(a.kopf.start)) + ' · ' + tage + ' Tag(e) · ' +
+      (a.quelle === 'import' ? 'Import 400.dotm' : 'in der App erstellt') + (a.plan.auditoren.length > 1 ? ' · ' + a.plan.auditoren.length + ' Auditoren' : '') + '</div>' +
+      '<div class="knopfreihe"><button class="haupt" data-a="oeffnen" data-id="' + a.id + '">Öffnen</button>' +
+      '<button data-a="bearbeiten" data-id="' + a.id + '">Bearbeiten</button>' +
+      '<button data-a="export" data-id="' + a.id + '">Export .txt</button>' +
+      '<button class="gefahr" data-a="loeschen" data-id="' + a.id + '">Löschen</button></div></div>';
+  });
+  $('liste').innerHTML = html || '<div class="karte leise">Noch kein Audit. Lege eins an oder importiere Auditzeiten.txt.</div>';
+  zeige('liste');
+}
+$('liste').addEventListener('click', function (ev) {
+  var b = ev.target.closest('button'); if (!b) return;
+  var a = auditById(b.dataset.id); if (!a) return;
+  if (b.dataset.a === 'oeffnen') oeffneAudit(a.id);
+  else if (b.dataset.a === 'bearbeiten') bearbeiten(a);
+  else if (b.dataset.a === 'export') exportieren(a);
+  else if (b.dataset.a === 'loeschen') {
+    if (!confirm('„' + a.name + '“ löschen?')) return;
+    var l = laufend(); if (l && l.id === a.id) stoppen();
+    daten.audits = daten.audits.filter(function (x) { return x.id !== a.id; }); sichern(); zeigeListe();
+  }
+});
+$('b-neu').onclick = function () { neuesAudit(); };
+$('b-import').onclick = function () { $('f-import').value = ''; $('f-import').click(); };
+$('f-import').onchange = function () {
+  var f = this.files && this.files[0]; if (!f) return;
+  var r = new FileReader();
+  r.onload = function () {
+    try {
+      var text = L.textAusBytes(r.result);
+      var a = L.importTxt(text);
+      a.id = neueId(); a.original = text; a.haken = {};
+      daten.audits.push(a); sichern(); zeigeListe();
+      toast('Importiert: ' + a.name + (a.hinweis ? ' – ' + a.hinweis : ''));
+    } catch (e) { alert('Import nicht möglich:\n' + e.message); console.log('import | ' + e); }
+  };
+  r.readAsArrayBuffer(f);
+};
+$('b-doku').onclick = function () { dokuZeigen(); };
+$('b-probe').onclick = function () { probelauf(); };
+
+function exportieren(a) {
+  var text = a.quelle === 'import' && a.original ? a.original : L.exportTxt(a, BR ? BR.appVersion() : '');
+  var name = (a.name || 'Audit').replace(/[\\\/:*?"<>|]/g, '_') + '.txt';
+  if (BR) BR.saveFile(name, 'text/plain', text);
+  else {
+    var url = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+    var l = document.createElement('a'); l.href = url; l.download = name; l.click(); setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+  }
+}
+
+// ---------------------------------------------------------------- Probelauf
+function probelauf() {
+  var jetzt = new Date(), m = jetzt.getHours() * 60 + jetzt.getMinutes() + 1;
+  var z = [['Probe A', 4], ['Probe B', 4], ['Probe C', 2]], zeilen = [], t = m;
+  z.forEach(function (x, i) { zeilen.push({ art: 'kapitel', titel: x[0], key: 'Probe', gruppe: i, teil: 1, h: x[1] / 60, tag: 1, je: [{ von: t, bis: t + x[1] }] }); t += x[1]; });
+  var a = auditById('probe');
+  if (!a) { a = { id: 'probe' }; daten.audits.push(a); }
+  Object.assign(a, { name: 'Probelauf', quelle: 'neu', probe: true, haken: {},
+    kopf: { kunde: 'Probelauf', typ: 'Test', start: heuteIso(), startzeit: L.uhr(m), tagBeginn: '00:00', tagEnde: '23:59', pause: '0' },
+    posten: [], plan: { start: heuteIso(), auditoren: ['LA'], zeilen: zeilen, tage: [] } });
+  sichern(); oeffneAudit('probe');
+  toast('Probelauf: Sonar alle 2 min, Gong je Kapitel. Mit „Audit starten“ beginnen.');
+}
+
+// ---------------------------------------------------------------- Editor
+var edit = { audit: null, posten: [], vonAudit: null };
+function neuesAudit() {
+  edit = { audit: null, posten: [], vonAudit: null };
+  $('e-titel').textContent = 'Neues Audit';
+  $('e-kunde').value = ''; $('e-zeit').value = '16'; $('e-typ').value = '1. ÜA'; $('e-start').value = heuteIso();
+  $('e-startzeit').value = '09:00'; $('e-beginn').value = '09:00'; $('e-ende').value = '17:30'; $('e-pause').value = '0,5';
+  $('e-nodev').checked = false; $('e-excl').value = '';
+  vorschlagRechnen(); zeige('edit');
+}
+function bearbeiten(a, vonAudit) {
+  if (a.quelle === 'import' && !a.posten) { alert('Die importierte Datei hat keinen [DATEN]-Block. Bitte in der 400.dotm ändern und neu importieren.'); return; }
+  if (a.quelle === 'import' && a.plan.auditoren.length > 1 &&
+      !confirm('Dieses Audit hat ' + a.plan.auditoren.length + ' Auditoren. Die App plant nur für einen Auditor: alle Kapitel laufen nacheinander. Trotzdem bearbeiten?')) return;
+  if (a.probe) { alert('Der Probelauf lässt sich nicht bearbeiten.'); return; }
+  edit = { audit: a, posten: a.posten.map(function (p) { return { key: p.key, on: p.on, h: p.h }; }), vonAudit: vonAudit || null };
+  var k = a.kopf;
+  $('e-titel').textContent = a.name;
+  $('e-kunde').value = k.kunde || ''; $('e-zeit').value = k.auditzeit || ''; $('e-typ').value = k.typ || '1. ÜA';
+  $('e-start').value = k.start || heuteIso(); $('e-startzeit').value = k.startzeit || '09:00';
+  $('e-beginn').value = k.tagBeginn || '09:00'; $('e-ende').value = k.tagEnde || '17:30'; $('e-pause').value = k.pause || '0,5';
+  $('e-nodev').checked = !!k.noDev; $('e-excl').value = k.excl || '';
+  $('e-meldung').textContent = '';
+  postenZeigen(); planZeigen(); zeige('edit');
+}
+function kopfAusFormular() {
+  return { kunde: $('e-kunde').value.trim(), auditzeit: $('e-zeit').value.trim(), typ: $('e-typ').value, noDev: $('e-nodev').checked,
+    excl: $('e-excl').value, start: $('e-start').value, startzeit: $('e-startzeit').value.trim(), tagBeginn: $('e-beginn').value.trim(),
+    tagEnde: $('e-ende').value.trim(), pause: $('e-pause').value.trim(), auditoren: '1' };
+}
+function vorschlagRechnen() {
+  var v = L.vorschlag(kopfAusFormular());
+  edit.posten = v.posten;
+  $('e-meldung').textContent = v.meldung;
+  postenZeigen(); planZeigen();
+}
+['e-zeit', 'e-typ', 'e-nodev', 'e-excl'].forEach(function (id) { $(id).addEventListener('change', function () { vorschlagRechnen(); toast('Vorschlag neu berechnet'); }); });
+['e-start', 'e-startzeit', 'e-beginn', 'e-ende', 'e-pause'].forEach(function (id) { $(id).addEventListener('change', planZeigen); });
+$('e-vorschlag').onclick = function () { if (confirm('Vorschlag aus den Kopfdaten neu berechnen? Handänderungen gehen verloren.')) vorschlagRechnen(); };
+function postenZeigen() {
+  var html = '', n = edit.posten.length;
+  edit.posten.forEach(function (p, i) {
+    var fest = p.key === 'EG' || p.key === 'AG';
+    html += '<div class="posten' + (p.on ? '' : ' aus') + '"><input type="checkbox" data-i="' + i + '" data-f="on"' + (p.on ? ' checked' : '') + '>' +
+      '<div class="name">' + esc(L.titelVon(p.key)) + '</div>' +
+      '<input type="text" inputmode="decimal" data-i="' + i + '" data-f="h" value="' + (p.h > 0 ? L.stunden(p.h) : '') + '"' + (p.on ? '' : ' disabled') + '>' +
+      '<div class="pfeile">' + (fest ? '' : '<button data-i="' + i + '" data-f="hoch"' + (i <= 1 ? ' disabled' : '') + '>▲</button><button data-i="' + i + '" data-f="runter"' + (i >= n - 2 ? ' disabled' : '') + '>▼</button>') + '</div></div>';
+  });
+  $('e-posten').innerHTML = html;
+}
+$('e-posten').addEventListener('change', function (ev) {
+  var e = ev.target, i = +e.dataset.i, p = edit.posten[i]; if (!p) return;
+  if (e.dataset.f === 'on') { p.on = e.checked; postenZeigen(); }
+  if (e.dataset.f === 'h') { var v = L.zahl(e.value); if (v < 0) { toast('Ungültige Zeit: ' + e.value); e.value = p.h > 0 ? L.stunden(p.h) : ''; return; } p.h = v; }
+  planZeigen();
+});
+$('e-posten').addEventListener('click', function (ev) {
+  var b = ev.target.closest('button'); if (!b) return;
+  var i = +b.dataset.i, j = b.dataset.f === 'hoch' ? i - 1 : i + 1;
+  if (j < 1 || j > edit.posten.length - 2) return;
+  var x = edit.posten[i]; edit.posten[i] = edit.posten[j]; edit.posten[j] = x;
+  postenZeigen(); planZeigen();
+});
+function planZeigen() {
+  var kopf = kopfAusFormular();
+  var z = L.zeitplan(kopf, edit.posten);
+  edit.plan = z;
+  var soll = L.zahl(kopf.auditzeit), ist = z.summe;
+  var ende = z.ende ? L.datumText(L.tagDatum(kopf.start, z.ende.tag)) + ' ' + L.uhr(z.ende.min) : '–';
+  $('e-summe').innerHTML = 'Soll ' + L.stunden(soll) + ' h · Ist <strong' + (Math.abs(soll - ist) > 0.001 ? ' style="color:var(--warn)"' : '') + '>' + L.stunden(ist) + ' h</strong> · Auditende ' + ende;
+  $('e-warn').innerHTML = z.warnungen.map(function (w) { return '<div class="warn">' + esc(w) + '</div>'; }).join('');
+  var html = '', tag = 0;
+  z.zeilen.forEach(function (r) {
+    if (r.tag !== tag) { if (tag) html += tagBalken(z, tag); tag = r.tag; }
+    html += '<div class="planzeile' + (r.art === 'pause' ? ' pause' : '') + '"><span>' + L.uhr(r.je[0].von) + '–' + L.uhr(r.je[0].bis) + '</span><span>' +
+      esc(r.titel) + (r.teil > 1 && r.art !== 'pause' ? ' (Teil ' + r.teil + ')' : '') + '</span><span style="text-align:right">' + L.stunden(r.h) + '</span></div>';
+  });
+  if (tag) html += tagBalken(z, tag);
+  $('e-plan').innerHTML = html;
+}
+function tagBalken(z, tag) {
+  var t = z.tage.filter(function (x) { return x.tag === tag; })[0];
+  return '<div class="tagbalken' + (t && t.verlaengert ? ' rot' : '') + '">' + esc(t ? t.text : 'Tag ' + tag) + '</div>';
+}
+$('e-zurueck').onclick = $('e-abbrechen').onclick = function () { zurueck(); };
+$('e-speichern').onclick = function () {
+  var kopf = kopfAusFormular();
+  if (!kopf.start) { toast('Bitte den Auditstart eintragen.'); return; }
+  planZeigen();
+  if (!edit.plan.zeilen.length) { toast('Kein Kapitel mit Zeit.'); return; }
+  var a = edit.audit;
+  if (!a) { a = { id: neueId(), haken: {} }; daten.audits.push(a); }
+  a.name = kopf.kunde || ('Audit ' + L.isoNachDe(kopf.start));
+  a.quelle = 'neu'; delete a.original;
+  a.kopf = kopf; a.posten = edit.posten;
+  a.plan = { start: kopf.start, auditoren: ['LA'], zeilen: edit.plan.zeilen, tage: edit.plan.tage };
+  sichern();
+  var l = laufend();
+  if (l && l.id === a.id) { aktuell.id = a.id; aktuell.aud = 0; starten(true); }
+  toast('Gespeichert');
+  oeffneAudit(a.id);
+};
+
+// ---------------------------------------------------------------- Audit-Ansicht
+var aktuell = { id: null, aud: 0, liste: [], ev: [], gewaehlt: -1, ruhe: 0, gebaut: '' };
+function oeffneAudit(id) {
+  var a = auditById(id); if (!a) { zeigeListe(); return; }
+  aktuell.id = id;
+  var l = laufend();
+  aktuell.aud = l && l.id === id && l.aud >= 0 && l.aud < a.plan.auditoren.length ? l.aud : (aktuell.aud < a.plan.auditoren.length ? aktuell.aud : 0);
+  $('a-titel').textContent = a.name;
+  var sel = $('a-aud');
+  sel.innerHTML = a.plan.auditoren.map(function (n, i) { return '<option value="' + i + '">' + esc(n || ('Auditor ' + (i + 1))) + '</option>'; }).join('');
+  sel.value = aktuell.aud; sel.style.display = a.plan.auditoren.length > 1 ? '' : 'none';
+  einstZeigen();
+  zeige('audit');
+  aktuell.gebaut = '';
+  auditAnzeigen(true);
+  schirm(daten.einst.schirm);
+}
+$('a-aud').onchange = function () { aktuell.aud = +this.value; aktuell.gebaut = ''; auditAnzeigen(true); if (istLaufend()) starten(true); };
+$('a-zurueck').onclick = function () { zeigeListe(); };
+$('a-titel').onclick = function () { var a = auditById(aktuell.id); if (a) bearbeiten(a, a.id); };
+
+function opt() {
+  var a = auditById(aktuell.id);
+  return { intervall: a && a.probe ? (daten.einst.intervall ? 2 : 0) : daten.einst.intervall, bezug: daten.einst.bezug };
+}
+function istLaufend() { var l = laufend(); return !!(l && l.id === aktuell.id); }
+
+function radBauen() {
+  var a = auditById(aktuell.id);
+  aktuell.liste = L.ablauf(a.plan, aktuell.aud);
+  aktuell.ev = L.ereignisse(aktuell.liste, opt(), 0);
+  $('a-rad').innerHTML = aktuell.liste.map(function (e, i) {
+    return '<div class="rz' + (e.art === 'pause' ? ' pause' : '') + '" data-i="' + i + '"><div class="t">' + esc(e.titel) + '</div>' +
+      '<div class="u">Tag ' + e.tag + ' · ' + L.uhr(e.vonMin) + '–' + L.uhr(e.bisMin) + ' · ' + L.stunden((e.bis - e.von) / 3600000) + ' h</div></div>';
+  }).join('');
+  aktuell.gebaut = aktuell.id + '/' + aktuell.aud;
+  radStil();
+}
+function aktuellerIndex(jetzt) {
+  var l = aktuell.liste, i;
+  for (i = 0; i < l.length; i++) if (jetzt >= l[i].von && jetzt < l[i].bis) return i;
+  for (i = 0; i < l.length; i++) if (l[i].von > jetzt) return i;
+  return l.length - 1;
+}
+function radAuf(i, weich) {
+  var rad = $('a-rad');
+  rad.scrollTo({ top: i * 52, behavior: weich ? 'smooth' : 'auto' });
+}
+function radStil() {
+  var rad = $('a-rad'), mitte = rad.scrollTop + 26, jetzt = Date.now(), akt = aktuellerIndex(jetzt);
+  var kinder = rad.children, gew = Math.max(0, Math.min(kinder.length - 1, Math.round(rad.scrollTop / 52)));
+  for (var i = 0; i < kinder.length; i++) {
+    var d = (i * 52 + 26 - mitte) / 52, ad = Math.min(3, Math.abs(d));
+    kinder[i].style.transform = 'rotateX(' + (-d * 16) + 'deg) scale(' + (1 - ad * 0.07) + ')';
+    kinder[i].style.opacity = String(1 - ad * 0.22);
+    var e = aktuell.liste[i];
+    kinder[i].classList.toggle('vorbei', e.bis <= jetzt);
+    kinder[i].classList.toggle('aktuell', i === akt && e.von <= jetzt && jetzt < e.bis);
+  }
+  if (gew !== aktuell.gewaehlt) { aktuell.gewaehlt = gew; doksZeigen(); }
+}
+$('a-rad').addEventListener('scroll', function () { aktuell.ruhe = Date.now(); requestAnimationFrame(radStil); }, { passive: true });
+$('a-rad').addEventListener('click', function (ev) { var r = ev.target.closest('.rz'); if (r) radAuf(+r.dataset.i, true); });
+$('a-jetzt').onclick = function () { aktuell.ruhe = 0; radAuf(aktuellerIndex(Date.now()), true); };
+
+function doksZeigen() {
+  var a = auditById(aktuell.id), e = aktuell.liste[aktuell.gewaehlt];
+  if (!a || !e) { $('a-dtitel').textContent = ''; $('a-doks').innerHTML = ''; return; }
+  $('a-dtitel').textContent = e.titel + ' · ' + L.uhr(e.vonMin) + '–' + L.uhr(e.bisMin);
+  if (e.art === 'pause') { $('a-doks').innerHTML = '<div class="leise">Pause</div>'; return; }
+  var k = L.dokKey(e.key), zeilen = dokText(e.key).split('\n').filter(function (s) { return s.trim(); });
+  var h = (a.haken || {})[k] || [];
+  $('a-doks').innerHTML = zeilen.length ? zeilen.map(function (s, i) {
+    var an = h.indexOf(i) >= 0;
+    return '<label class="d' + (an ? ' erledigt' : '') + '"><input type="checkbox" data-k="' + esc(k) + '" data-i="' + i + '"' + (an ? ' checked' : '') + '><span>' + esc(s) + '</span></label>';
+  }).join('') : '<div class="leise">Keine Vorgabe – unter „Dokumente“ eintragen.</div>';
+}
+$('a-doks').addEventListener('change', function (ev) {
+  var c = ev.target, a = auditById(aktuell.id); if (!a || !c.dataset.k) return;
+  a.haken = a.haken || {};
+  var h = a.haken[c.dataset.k] = a.haken[c.dataset.k] || [], i = +c.dataset.i;
+  if (c.checked) { if (h.indexOf(i) < 0) h.push(i); } else h.splice(h.indexOf(i), 1);
+  c.parentNode.classList.toggle('erledigt', c.checked);
+  sichern();
+});
+
+function fortschritt(jetzt) {
+  var l = aktuell.liste, i = -1, k;
+  for (k = 0; k < l.length; k++) if (l[k].art === 'kapitel' && jetzt >= l[k].von && jetzt < l[k].bis) { i = k; break; }
+  if (i < 0) return null;
+  var e = l[i], bez = daten.einst.bezug;
+  var teile = l.filter(function (x) {
+    if (x.art !== 'kapitel') return false;
+    if (bez === 'audit') return true;
+    if (bez === 'tag') return x.tag === e.tag;
+    return e.gruppe >= 0 ? x.gruppe === e.gruppe : x.nr === e.nr;
+  });
+  var ges = 0, getan = 0;
+  teile.forEach(function (x) { ges += x.bis - x.von; if (x.bis <= jetzt) getan += x.bis - x.von; else if (x.von <= jetzt) getan += jetzt - x.von; });
+  var kap = l.filter(function (x) { return x.art === 'kapitel' && (e.gruppe >= 0 ? x.gruppe === e.gruppe : x.nr === e.nr); });
+  return { e: e, anteil: ges ? getan / ges : 0, kapEnde: kap[kap.length - 1].bis };
+}
+
+function auditAnzeigen(zentrieren) {
+  var a = auditById(aktuell.id); if (!a) return;
+  if (aktuell.gebaut !== aktuell.id + '/' + aktuell.aud) { radBauen(); zentrieren = true; }
+  var jetzt = Date.now(), d = new Date(jetzt), l = aktuell.liste;
+  $('a-uhr').textContent = L.pad(d.getHours()) + ':' + L.pad(d.getMinutes()) + ':' + L.pad(d.getSeconds());
+  $('a-datum').textContent = L.datumText(d);
+  var f = fortschritt(jetzt), akt = aktuellerIndex(jetzt), e = l[akt];
+  var restEl = $('a-rest');
+  if (!l.length) { $('a-abschnitt').textContent = 'Kein Zeitplan'; return; }
+  if (f) {
+    $('a-status').textContent = 'Jetzt';
+    $('a-abschnitt').textContent = f.e.titel.replace(/\s*\(Teil \d+\)$/, '');
+    $('a-zeit').textContent = 'bis ' + hm(f.kapEnde);
+    restEl.textContent = dauer(f.kapEnde - jetzt);
+    restEl.classList.toggle('w75', f.anteil >= 0.75);
+    $('a-balken').style.width = Math.min(100, f.anteil * 100).toFixed(1) + '%';
+    $('a-balken').style.background = f.anteil >= 0.75 ? 'var(--warn)' : 'var(--akzent)';
+    $('a-bezug').textContent = Math.floor(f.anteil * 100) + ' % ' + ({ kapitel: 'des Kapitels', tag: 'des Audittags', audit: 'des Audits' })[daten.einst.bezug];
+  } else {
+    restEl.classList.remove('w75'); $('a-balken').style.width = '0';
+    if (e && e.art === 'pause' && jetzt >= e.von && jetzt < e.bis) {
+      $('a-status').textContent = 'Pause'; $('a-abschnitt').textContent = 'Mittagspause';
+      $('a-zeit').textContent = 'bis ' + hm(e.bis); restEl.textContent = dauer(e.bis - jetzt);
+    } else if (e && e.von > jetzt) {
+      $('a-status').textContent = 'Als Nächstes'; $('a-abschnitt').textContent = e.titel;
+      $('a-zeit').textContent = 'Beginn ' + (new Date(e.von).toDateString() === d.toDateString() ? '' : L.datumText(new Date(e.von)) + ' ') + hm(e.von);
+      restEl.textContent = dauer(e.von - jetzt);
+    } else {
+      $('a-status').textContent = 'Ende'; $('a-abschnitt').textContent = 'Audit beendet'; $('a-zeit').textContent = ''; restEl.textContent = '0:00';
+    }
+    $('a-bezug').textContent = '';
+  }
+  // Rest Tag / Audit (nur Kapitelzeit)
+  var heute = l.filter(function (x) { return new Date(x.von).toDateString() === d.toDateString(); });
+  var tagEnde = heute.length ? heute[heute.length - 1].bis : 0;
+  $('a-resttag').textContent = tagEnde > jetzt ? dauer(tagEnde - jetzt) : '–';
+  var restA = 0; l.forEach(function (x) { if (x.art === 'kapitel') restA += Math.max(0, x.bis - Math.max(x.von, jetzt)); });
+  $('a-restaudit').textContent = restA > 0 ? L.stunden(Math.round(restA / 900000) / 4) + ' h' : '–';
+  var n = aktuell.ev.filter(function (x) { return x.t > jetzt; })[0];
+  $('a-ton').textContent = n ? hm(n.t) + (n.art === 'sonar' ? ' ◦' : ' ●') : '–';
+  $('a-ton').title = n ? n.text : '';
+  var lauf = istLaufend();
+  $('a-start').textContent = lauf ? 'Audit beenden' : 'Audit starten';
+  $('a-start').className = lauf ? 'gefahr' : 'haupt';
+  if (zentrieren || (aktuell.ruhe && jetzt - aktuell.ruhe > 10000)) { aktuell.ruhe = 0; radAuf(akt, !zentrieren); }
+  radStil();
+}
+
+// ---------------------------------------------------------------- Töne / Dienst
+function planFuerDienst() {
+  var a = auditById(aktuell.id), jetzt = Date.now();
+  var ev = L.ereignisse(aktuell.liste, opt(), jetzt);
+  var ende = aktuell.liste.length ? aktuell.liste[aktuell.liste.length - 1].bis : jetzt;
+  return { id: a.id, aud: aktuell.aud, titel: a.name, anteilSonar: +daten.einst.anteilSonar, anteilGong: +daten.einst.anteilGong,
+    vibration: !!daten.einst.vibration, ende: ende, ereignisse: ev };
+}
+function starten(still) {
+  aktuell.gebaut = ''; radBauen();
+  var p = planFuerDienst();
+  if (!p.ereignisse.length) { if (!still) toast('Keine Töne mehr in diesem Audit.'); return; }
+  if (BR) { if (!BR.startAudit(JSON.stringify(p))) { toast('Audit-Dienst ließ sich nicht starten'); return; } }
+  else browserLauf = { plan: p, zuletzt: Date.now() };
+  if (!still) toast('Audit läuft – ' + p.ereignisse.length + ' Töne geplant');
+  setTimeout(function () { auditAnzeigen(false); }, 300);
+}
+function stoppen() {
+  if (BR) BR.stopAudit(); else browserLauf = null;
+  setTimeout(function () { if (ansicht === 'audit') auditAnzeigen(false); }, 300);
+}
+$('a-start').onclick = function () {
+  if (istLaufend()) { if (confirm('Audit beenden? Sonar und Gong werden abgeschaltet.')) stoppen(); }
+  else {
+    var l = laufend();
+    if (l && !confirm('„' + l.titel + '“ läuft noch. Beenden und dieses Audit starten?')) return;
+    starten(false);
+  }
+};
+function testTon(art) {
+  var anteil = art === 'sonar' ? daten.einst.anteilSonar : daten.einst.anteilGong;
+  if (BR) BR.testTon(art, +anteil, !!daten.einst.vibration); else browserTon(art, +anteil);
+}
+$('a-tsonar').onclick = function () { testTon('sonar'); };
+$('a-tgong').onclick = function () { testTon('gong75'); };
+
+function einstZeigen() {
+  var e = daten.einst;
+  [].forEach.call($('a-sonar').children, function (b) { b.classList.toggle('an', +b.dataset.v === +e.intervall); });
+  [].forEach.call($('a-gbezug').children, function (b) { b.classList.toggle('an', b.dataset.v === e.bezug); });
+  $('a-lsonar').value = e.anteilSonar; $('a-lgong').value = e.anteilGong; $('a-vib').checked = !!e.vibration; $('a-schirm').checked = !!e.schirm;
+}
+function einstGeaendert(neuPlanen) {
+  sichern(); einstZeigen();
+  aktuell.ev = L.ereignisse(aktuell.liste, opt(), 0);
+  if (neuPlanen && istLaufend()) starten(true);
+  auditAnzeigen(false);
+}
+$('a-sonar').onclick = function (ev) { var b = ev.target.closest('button'); if (!b) return; daten.einst.intervall = +b.dataset.v; einstGeaendert(true); };
+$('a-gbezug').onclick = function (ev) { var b = ev.target.closest('button'); if (!b) return; daten.einst.bezug = b.dataset.v; einstGeaendert(true); };
+$('a-lsonar').onchange = function () { daten.einst.anteilSonar = +this.value; einstGeaendert(true); };
+$('a-lgong').onchange = function () { daten.einst.anteilGong = +this.value; einstGeaendert(true); };
+$('a-vib').onchange = function () { daten.einst.vibration = this.checked; einstGeaendert(true); };
+$('a-schirm').onchange = function () { daten.einst.schirm = this.checked; sichern(); schirm(this.checked); };
+
+var wakeLock = null;
+function schirm(an) {
+  if (BR) { BR.bildschirmAn(!!an); return; }
+  try {
+    if (an && navigator.wakeLock && !wakeLock) navigator.wakeLock.request('screen').then(function (w) { wakeLock = w; }).catch(function () {});
+    if (!an && wakeLock) { wakeLock.release(); wakeLock = null; }
+  } catch (e) { console.log('schirm | ' + e); }
+}
+
+// Browser (ohne App-Hülle): Töne nur, solange die Seite offen ist
+var browserLauf = null, audioCtx = null;
+function browserTon(art, anteil) {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    var t0 = audioCtx.currentTime, g = audioCtx.createGain(); g.connect(audioCtx.destination);
+    var teile = art === 'sonar' ? [[1180, 1, 1.2]] : [[110, 1, 4], [176, .6, 3.5], [233, .5, 3], [297, .35, 2.5], [412, .25, 2]];
+    teile.forEach(function (p) {
+      var o = audioCtx.createOscillator(), v = audioCtx.createGain();
+      o.frequency.value = p[0]; v.gain.setValueAtTime(0.0001, t0); v.gain.exponentialRampToValueAtTime(p[1] * anteil * 0.5, t0 + 0.01);
+      v.gain.exponentialRampToValueAtTime(0.0001, t0 + p[2]); o.connect(v); v.connect(g); o.start(t0); o.stop(t0 + p[2] + 0.1);
+    });
+  } catch (e) { console.log('browserTon | ' + e); }
+}
+function browserTakt() {
+  if (BR || !browserLauf) return;
+  var jetzt = Date.now(), p = browserLauf.plan, beste = null;
+  var rang = { sonar: 1, gong75: 2, gong100: 3 };
+  p.ereignisse.forEach(function (e) { if (e.t > browserLauf.zuletzt && e.t <= jetzt) { if (!beste || rang[e.art] > rang[beste]) beste = e.art; } });
+  browserLauf.zuletzt = jetzt;
+  if (beste) browserTon(beste, beste === 'sonar' ? p.anteilSonar : p.anteilGong);
+  if (jetzt > p.ende) browserLauf = null;
+}
+
+// ---------------------------------------------------------------- Dokumente-Vorgaben
+function dokuZeigen() {
+  $('d-liste').innerHTML = L.KAPITEL.map(function (k) {
+    var v = daten.doks[k.key] !== undefined ? daten.doks[k.key] : (L.DOKUMENTE[k.key] || '');
+    return '<label>' + esc(L.titelVon(k.key)) + '</label><textarea data-k="' + esc(k.key) + '">' + esc(v) + '</textarea>';
+  }).join('');
+  zeige('doku');
+}
+$('d-zurueck').onclick = function () { zeigeListe(); };
+$('d-speichern').onclick = function () {
+  [].forEach.call($('d-liste').querySelectorAll('textarea'), function (t) {
+    var k = t.dataset.k, v = t.value.replace(/\r/g, '').trim();
+    if (v === (L.DOKUMENTE[k] || '')) delete daten.doks[k]; else daten.doks[k] = v;
+  });
+  sichern(); toast('Gespeichert'); zeigeListe();
+};
+$('d-vorgabe').onclick = function () { if (confirm('Alle Dokumente auf die Vorbelegung zurücksetzen?')) { daten.doks = {}; sichern(); dokuZeigen(); } };
+
+// ---------------------------------------------------------------- Takt
+setInterval(function () { browserTakt(); if (ansicht === 'audit') auditAnzeigen(false); }, 250);
+$('version').textContent = 'Version ' + (BR ? BR.appVersion() : 'Browser') + ' · Logik ' + L.VERSION;
+(function startAnsicht() {
+  var l = laufend();
+  if (l && auditById(l.id)) oeffneAudit(l.id); else zeigeListe();
+})();
+</script>
+</body>
+</html>

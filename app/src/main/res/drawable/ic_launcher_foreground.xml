@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- App-Icon Auditplan: Uhr mit Zeigern und Sonar-Bögen (weiß auf petrol). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Ziffernblatt -->
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFFF" android:strokeWidth="4"
+        android:pathData="M50,34a18,18 0 1,1 0,36a18,18 0 1,1 0,-36z" />
+    <!-- Zeiger -->
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFFF" android:strokeWidth="3" android:strokeLineCap="round" android:strokeLineJoin="round"
+        android:pathData="M50,40L50,52L58,57" />
+    <path android:fillColor="#FFFFFF" android:pathData="M50,52m-2.2,0a2.2,2.2 0 1,0 4.4,0a2.2,2.2 0 1,0 -4.4,0" />
+    <!-- Sonar-Bögen -->
+    <path android:fillColor="#00000000" android:strokeColor="#7FE3F0" android:strokeWidth="3" android:strokeLineCap="round"
+        android:pathData="M72,42a14,14 0 0,1 0,20 M78,36a22,22 0 0,1 0,32" />
+</vector>
