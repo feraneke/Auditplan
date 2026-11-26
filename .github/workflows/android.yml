@@ -37,13 +37,13 @@ jobs:
       - name: APK umbenennen
         run: |
           mkdir -p ausgabe
-          cp app/build/outputs/apk/release/app-release.apk "ausgabe/Auditplan-1.0.${{ github.run_number }}.apk"
+          cp app/build/outputs/apk/release/app-release.apk "ausgabe/Auditplan-2.0.${{ github.run_number }}.apk"
       - uses: actions/upload-artifact@v4
         with:
           name: Auditplan-APK
           path: ausgabe/*.apk
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.${{ github.run_number }}
-          name: Auditplan 1.0.${{ github.run_number }}
+          tag_name: v2.0.${{ github.run_number }}
+          name: Auditplan 2.0.${{ github.run_number }}
           files: ausgabe/*.apk

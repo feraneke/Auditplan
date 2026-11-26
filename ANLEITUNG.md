@@ -16,29 +16,37 @@ Ohne Schlüssel lässt sich jede neue Version nur nach dem Deinstallieren der al
 ## App installieren
 
 1. Öffne auf dem Handy in Chrome `https://github.com/feraneke/auditplan/releases` und melde dich an.
-2. Tippe beim neuesten Eintrag unter **Assets** auf `Auditplan-1.0.x.apk` und öffne die Datei.
+2. Tippe beim neuesten Eintrag unter **Assets** auf `Auditplan-2.0.x.apk` und öffne die Datei.
 3. Falls Android fragt: Installation aus dieser Quelle zulassen. Falls Play Protect warnt: **Weitere Details**, dann **Trotzdem installieren**.
 
 ## Beim ersten Start
 
-- **Probelauf (10 min)** in der Auditliste antippen, dann **Audit starten**.
-- Benachrichtigungen erlauben. Die Benachrichtigung zeigt das laufende Audit und den nächsten Ton.
-- Bildschirm sperren und abwarten: Sonar alle 2 min, Gong bei 75 % und 100 % jedes Probe-Kapitels.
-- Die Lautstärke regelst du mit der **Wecker-Lautstärke** von Android. Die Töne kommen auch bei Lautlos.
+- **PIN festlegen** (mindestens 6 Ziffern). Die Daten liegen verschlüsselt auf dem Handy. PIN vergessen = Daten verloren; sichern über **Export .apdat**.
+- Benachrichtigungen erlauben. Die Benachrichtigung zeigt nur „Audit läuft – nächster Ton hh:mm“, keine Namen.
+- **Einstellungen → Probelauf starten**, dann **Audit starten**. Bildschirm sperren und abwarten: Intervall-Signale alle 2 min, Prozent-Signale je Probe-Kapitel.
+- Die Gesamtlautstärke regelst du mit der **Wecker-Lautstärke** von Android. Die Töne kommen auch bei Lautlos.
 
 ## Bedienung
 
 | Bereich | Funktion |
 |---|---|
-| Auditliste | **+ Neues Audit**, **Import .txt** (Auditzeiten.txt aus der 400.dotm), Öffnen, Bearbeiten, Export .txt, Löschen |
-| Neu/Bearbeiten | Kopfdaten wie in der 400.dotm. Der Vorschlag folgt denselben Regeln (Audittyp, 7.3/7.5 je 15 %, EG/AG, Pause, Teilung ab 1,5 h, Verlängerung bis 10 h). Zeiten, Haken und Reihenfolge (▲▼) lassen sich ändern. |
-| Audit | Uhr, Restzeit des Kapitels, Fortschritt mit 75-%-Marke, Rest Tag/Audit, nächster Ton. Scrollrad durch den Zeitplan, nach 10 s zurück auf „Jetzt“. Darunter die erwarteten Dokumente zum gewählten Kapitel zum Abhaken. |
-| Töne und Anzeige | Sonar aus/15/30/60 min, Gong bezogen auf Kapitel/Audittag/Gesamtaudit, Lautstärken, Vibration, Bildschirm an |
-| Dokumente | Erwartete Dokumente je Kapitel ändern (gilt für alle Audits) |
+| Auditliste | **Arbeitstag** (immer oben), **+ Neues Audit**, **Import .txt** (Auditzeiten.txt aus der 400.dotm; ein Kundenname wird durch ein Kürzel ersetzt), ⋮ = Bearbeiten, Export .txt, Löschen; 🔒 = sperren |
+| Neu/Bearbeiten | Kopfdaten wie in der 400.dotm, Audit-Kürzel statt Kunde (leer = vorläufiges Kürzel NEU-n). Vorschlag nach den Regeln der 400.dotm. |
+| Audit | Uhr mit Segment des laufenden Timeslots, Timer mit Restzeit, Marken der Signalregeln. **Verlängern** (+5/+10/+15 min oder bis Uhrzeit; Nachfolgende verschieben oder nur nächstes kürzen), **Kapitel beenden** (vorziehen oder Zeit dem nächsten geben). Wählrad mit Plan und Ist; rot = über Tagesende. |
+| Kapitel-Dokumente | Tipp auf eine Zeile des Wählrads. Erwartete Dokumente je Unterpunkt, grau bis erledigt; Häkchen oder Dokumentname mit Revision und Datum; Auswahl bekannter Namen (dieses Kapitel oder alle, inkl. Voraudits); **+** je Unterpunkt. Tasks anderer Auditoren ausgegraut. |
+| Arbeitstag | Auftrag und Position wählen, **Start**; **Wechsel** beendet den laufenden Slot; **Stopp**. Tipp auf einen Slot: ändern, teilen, parken, löschen. Audit starten/beenden legt automatisch einen Slot auf der Audit-Position an. |
+| Einstellungen | Signalregeln (Auslöser, Ton, Lautstärke, Anschläge, Vibration, Vorrang, eigene Audiodatei), Bildschirm an, Sperre nach Minuten, PIN ändern, Audit-Position, Soll-Arbeitszeit, Vorgaben je Unterpunkt, **Export .apdat** (Download/Auditplan), **Teilen**, **Import .apdat**, Probelauf |
+
+## Datenaustausch mit dem PC
+
+1. Handy: **Einstellungen → Export .apdat**. Die Datei liegt in `Download/Auditplan`.
+2. Handy per USB an den PC, Datei nach `C:\Arbeitsverzeichnis\Android_Apps\Audit\Austausch\Eingang\` kopieren.
+3. Word (Projekt_Konsolidierung.dotm): Makro `ApImportVomHandy`, danach `ApExportFuersHandy`.
+4. Die Antwortdatei aus `Austausch\Ausgang\` aufs Handy kopieren und dort **Import .apdat**.
 
 ## Updates
 
 Neue Dateien landen im Repository, und GitHub baut die neue APK unter **Releases**. Du installierst sie über die alte, und die Daten bleiben erhalten.
 
 ---
-Erstellt mit Claude (claude.ai), Projekt „400_Auditplan“, 25.11.2026.
+Erstellt mit Claude (claude.ai), Projekt „400_Auditplan“, 25.11.2026; Stand App 2.0 (Stufen A1–A7), 26.11.2026.

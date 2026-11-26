@@ -1,8 +1,13 @@
 /*
  * Auditplan – Empfänger für den Android-Wecker (AlarmManager.setAlarmClock).
- * Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“, 25.11.2026.
+ * Version: 1.0.1 (2026-11-26)
+ * Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
  *
  * Weckt den Audit-Dienst, der dann den fälligen Ton spielt und den nächsten plant.
+ *
+ * Versionshistorie:
+ *   1.0.0 (2026-11-25) Erste Fassung.
+ *   1.0.1 (2026-11-26) Nur Versionsangabe ergänzt (BP-023), Code unverändert.
  */
 package de.auditplan.app;
 

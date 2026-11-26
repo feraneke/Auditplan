@@ -1,14 +1,22 @@
 /*
  * Auditplan – Audit-Dienst (Vordergrunddienst mit Benachrichtigung).
- * Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“, 25.11.2026.
+ * Version: 2.0.0 (2026-11-26)
+ * Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
  *
- * Die Web-Oberfläche berechnet die Ereignisliste (Sonar, Gong 75 %, Gong 100 %)
- * und übergibt sie als JSON. Der Dienst legt sie im App-Speicher ab und stellt
- * immer nur das nächste Ereignis als Android-Wecker (setAlarmClock). Der Wecker
- * kommt auch bei gesperrtem Bildschirm und im Energiesparmodus pünktlich.
+ * Die Web-Oberfläche berechnet die Ereignisliste aus den Signalregeln und übergibt
+ * sie als JSON. Der Dienst legt sie im App-Speicher ab und stellt immer nur das
+ * nächste Ereignis als Android-Wecker (setAlarmClock). Der Wecker kommt auch bei
+ * gesperrtem Bildschirm und im Energiesparmodus pünktlich.
+ * Der gespeicherte Plan enthält keine Kunden- oder Kapitelnamen (Stufe A5).
  *
- * Plan-JSON: {"id","titel","anteilSonar","anteilGong","vibration","ende",
- *             "ereignisse":[{"t":Millisekunden,"art":"sonar|gong75|gong100","text"}]}
+ * Plan-JSON: {"id","aud","art":"audit|tag","titel","ende",
+ *             "ereignisse":[{"t","ton","lautst":0..1,"anschlaege","vib","vorrang","text"}]}
+ *
+ * Versionshistorie:
+ *   1.0.0 (2026-11-25) Erste Fassung (Sonar, Gong 75 %, Gong 100 %).
+ *   2.0.0 (2026-11-26) Stufen A2/A5/A7: Ereignisse aus Signalregeln mit Ton, Lautstärke,
+ *                      Anschlägen, Vibration und Vorrang; neutrale Benachrichtigung;
+ *                      Arbeitstag als eigener Plan (art "tag"); Versionsangabe (BP-023).
  */
 package de.auditplan.app;
 
@@ -51,6 +59,8 @@ public class AuditDienst extends Service {
     public IBinder onBind(Intent intent) {
         return null;
     }
+
+    static final String VERSION = "2.0.0";
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -100,7 +110,7 @@ public class AuditDienst extends Service {
             if (ev == null) return;
             long jetzt = System.currentTimeMillis();
             long zuletzt = prefs(ctx).getLong(KEY_ZULETZT, 0L);
-            String beste = null;
+            JSONObject beste = null;
             long neuZuletzt = zuletzt;
             for (int i = 0; i < ev.length(); i++) {
                 JSONObject e = ev.getJSONObject(i);
@@ -108,17 +118,15 @@ public class AuditDienst extends Service {
                 if (t <= zuletzt || t > jetzt + 2000L) continue;
                 neuZuletzt = Math.max(neuZuletzt, t);
                 if (t < jetzt - VERPASST_MS) continue;
-                String art = e.optString("art", "sonar");
-                if (beste == null || rang(art) > rang(beste)) beste = art;
+                if (beste == null || vorrang(e) > vorrang(beste)) beste = e;
             }
             prefs(ctx).edit().putLong(KEY_ZULETZT, neuZuletzt).apply();
             if (beste != null) {
-                float anteil = (float) (beste.startsWith("gong")
-                        ? plan.optDouble("anteilGong", 1.0)
-                        : plan.optDouble("anteilSonar", 0.5));
-                Ton.spielen(ctx, beste, anteil, plan.optBoolean("vibration", true));
+                Ton.spielen(ctx, beste.optString("ton", tonAusArt(beste.optString("art", "sonar"))),
+                        (float) beste.optDouble("lautst", 1.0), beste.optInt("anschlaege", 1),
+                        beste.optString("vib", "KURZ"));
             }
-            Log.d(Ton.TAG, "AuditDienst.faelligeAbarbeiten | gespielt " + beste);
+            Log.d(Ton.TAG, "AuditDienst.faelligeAbarbeiten | gespielt " + (beste == null ? "-" : beste.optString("ton")));
         } catch (Exception e) {
             Log.e(Ton.TAG, "AuditDienst.faelligeAbarbeiten | Fehler " + e);
         }
@@ -134,10 +142,17 @@ public class AuditDienst extends Service {
         }
     }
 
-    private static int rang(String art) {
+    /** Vorrang eines Ereignisses; alte Pläne (v1) ohne Vorrang: Gong 100 % > Gong 75 % > Sonar. */
+    private static int vorrang(JSONObject e) {
+        if (e.has("vorrang")) return e.optInt("vorrang", 1);
+        String art = e.optString("art", "sonar");
         if ("gong100".equals(art)) return 3;
         if ("gong75".equals(art)) return 2;
         return 1;
+    }
+
+    private static String tonAusArt(String art) {
+        return art != null && art.startsWith("gong") ? "gong" : "sonar";
     }
 
     /** Nächstes Ereignis als Wecker stellen; false = nichts mehr zu tun. */
@@ -153,7 +168,7 @@ public class AuditDienst extends Service {
             return true;
         }
         String uhr = new SimpleDateFormat("HH:mm", Locale.GERMANY).format(new Date(naechstes.getLong("t")));
-        vordergrund(plan.optString("titel", "Audit") + " – nächster Ton " + uhr + ": " + naechstes.optString("text", ""));
+        vordergrund(plan.optString("titel", "Audit läuft") + " – nächster Ton " + uhr);
         return true;
     }
 
@@ -218,7 +233,7 @@ public class AuditDienst extends Service {
                 .setContentText(text)
                 .setStyle(new Notification.BigTextStyle().bigText(text))
                 .setContentIntent(oeffnenIntent(this))
-                .addAction(new Notification.Action.Builder(null, "Audit beenden", piStop).build())
+                .addAction(new Notification.Action.Builder(null, "Signale beenden", piStop).build())
                 .setOngoing(true)
                 .setOnlyAlertOnce(true)
                 .build();
