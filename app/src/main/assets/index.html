@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   Auditplan – Oberfläche
-  Version: 1.1.0 (2026-11-26)
+  Version: 1.2.0 (2026-11-26)
   Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
   Läuft in der Android-Hülle (window.AndroidBridge) und zum Ausprobieren auch im Browser.
   Versionshistorie:
@@ -11,6 +11,14 @@
     1.1.0 (2026-11-26) Audit-Ansicht: oben zwei analoge Uhren (Uhrzeit mit Bogen des laufenden
                        Kapitels; Timer mit Restzeit-Sektor und 75-%-Marke), darunter der Zeitplan
                        als senkrechtes Wählrad (höher, 7 Zeilen sichtbar). Balkenanzeige entfällt.
+    1.2.0 (2026-11-26) Stufe A1 Seitenaufbau: Auditliste als Einzeiler mit Menü ⋮; neue Seite
+                       Einstellungen (Töne, Anzeige, erwartete Dokumente, Probelauf); Audit-Seite
+                       ohne Dokumente und Töne; Tipp auf eine Zeile des Wählrads öffnet die neue
+                       Seite Kapitel-Dokumente (erwartete Dokumente grau, bis abgehakt oder durch
+                       Dokumentnamen ersetzt; Auswahl bekannter Namen, Kapitel/alle; + Dokument).
+                       Uhr: Kreissegment des laufenden Timeslots wie beim Timer (Rest farbig,
+                       Abgelaufenes grau, 75-%-Marke). Timer und Gong fest auf den Timeslot.
+                       Audit-Kürzel statt Kunde im Editor.
 -->
 <html lang="de">
 <head>
@@ -99,31 +107,41 @@ details summary{cursor:pointer;padding:6px 0;color:var(--leise)}
   font-size:14px;opacity:0;transition:opacity .3s;pointer-events:none;max-width:90%;text-align:center;z-index:9}
 #toast.an{opacity:1}
 textarea{min-height:110px}
+.zeile{display:flex;align-items:center;gap:8px;background:var(--karte);border-radius:10px;padding:10px 6px 10px 12px;margin:6px 0;cursor:pointer}
+.zeile .txt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.zeile .txt b{font-weight:600}
+.zeile .txt span{color:var(--leise);font-size:14px}
+.zeile .mehr{background:none;padding:4px 12px;font-size:20px;line-height:1}
+.aktionen{display:flex;gap:6px;flex-wrap:wrap;margin:-2px 0 8px 12px}
+.aktionen button{padding:7px 10px;font-size:14px}
+.kd{display:flex;gap:10px;align-items:center;margin:8px 0}
+.kd input[type=text]{flex:1}
+.kd.offen input[type=text]{color:var(--leise)}
+.kd.offen input[type=text]::placeholder{color:var(--leise)}
+.kd input[type=text]::placeholder{color:#5d6b75}
+.kd:not(.offen) input[type=text]::placeholder{color:var(--text)}
+.kdvorgabe{font-size:12px;color:var(--leise);margin:-6px 0 0 32px}
 </style>
 </head>
 <body>
 
 <!-- ================= Auditliste ================= -->
 <div class="screen an" id="s-liste">
-  <div class="kopf"><h1>Auditplan</h1><button id="b-doku" title="Erwartete Dokumente">Dokumente</button></div>
+  <div class="kopf"><h1>Auditplan</h1><button id="b-einst" title="Einstellungen">⚙ Einstellungen</button></div>
   <div class="reihe">
     <button class="haupt" id="b-neu">+ Neues Audit</button>
     <button id="b-import">Import .txt</button>
   </div>
   <input type="file" id="f-import" accept=".txt,text/plain" style="display:none">
   <div id="liste" class="liste-audit"></div>
-  <div class="karte leise">
-    <div>Import: Arbeitsstand der 400.dotm (Auditzeiten.txt, „Save“). Die Auditzeiten bleiben nur auf diesem Gerät.</div>
-    <div class="knopfreihe"><button id="b-probe">Probelauf (10 min)</button></div>
-    <div id="version" style="margin-top:8px"></div>
-  </div>
+  <div class="leise" style="margin-top:10px">Import: Arbeitsstand der 400.dotm (Auditzeiten.txt). Tippen = öffnen, ⋮ = bearbeiten, exportieren, löschen.</div>
 </div>
 
 <!-- ================= Neu / Bearbeiten ================= -->
 <div class="screen" id="s-edit">
   <div class="kopf"><button id="e-zurueck">←</button><h1 id="e-titel">Neues Audit</h1></div>
   <div class="karte">
-    <label>Kunde / Auftrag</label><input id="e-kunde" type="text">
+    <label>Audit-Kürzel (kein Kundenname)</label><input id="e-kunde" type="text" placeholder="K-7F3A9Q/A-2B8K">
     <div class="raster">
       <div><label>Auditzeit (h)</label><input id="e-zeit" type="text" inputmode="decimal"></div>
       <div><label>Audittyp</label><select id="e-typ"><option>1. ÜA</option><option>2. ÜA</option><option>Rezert</option></select></div>
@@ -170,29 +188,54 @@ textarea{min-height:110px}
     </div>
   </div>
   <div class="radrahmen"><div class="rad" id="a-rad"></div><div class="radmitte"></div><button class="radjetzt" id="a-jetzt">Jetzt</button></div>
-  <div class="karte doku">
-    <div class="leise">Erwartete Dokumente</div>
-    <div style="font-weight:600" id="a-dtitel"></div>
-    <div id="a-doks"></div>
+  <div class="leise" style="margin-top:6px">Tipp auf eine Zeile öffnet die erwarteten Dokumente.</div>
+  <div class="unten"><div class="innen"><button class="haupt" id="a-start">Audit starten</button></div></div>
+</div>
+
+<!-- ================= Kapitel-Dokumente ================= -->
+<div class="screen" id="s-kdok">
+  <div class="kopf"><button id="k-zurueck">←</button><h1 id="k-titel"></h1></div>
+  <div class="leise" id="k-info"></div>
+  <div class="karte">
+    <div class="segmente" id="k-filter"><button data-v="0">Auswahl: dieses Kapitel</button><button data-v="1">alle Kapitel</button></div>
+    <div id="k-liste"></div>
+    <datalist id="k-bekannt"></datalist>
+    <div class="knopfreihe"><button id="k-neu">+ Dokument</button></div>
+    <div class="leise" style="margin-top:8px">Grau = erwartet. Erledigt durch Häkchen oder durch Eintrag des Dokumentnamens, z. B. „QM-Handbuch Rev. 7 vom 03.2026“.</div>
+  </div>
+</div>
+
+<!-- ================= Einstellungen ================= -->
+<div class="screen" id="s-einst">
+  <div class="kopf"><button id="n-zurueck">←</button><h1>Einstellungen</h1></div>
+  <div class="karte">
+    <strong>Töne</strong>
+    <label>Sonar</label>
+    <div class="segmente" id="a-sonar"><button data-v="0">Aus</button><button data-v="15">15 min</button><button data-v="30">30 min</button><button data-v="60">60 min</button></div>
+    <label>Lautstärke Sonar</label><input type="range" id="a-lsonar" min="0.05" max="1" step="0.05">
+    <label>Lautstärke Gong (75 % und 100 % des Timeslots)</label><input type="range" id="a-lgong" min="0.05" max="1" step="0.05">
+    <div class="reihe" style="margin-top:10px">
+      <label style="display:flex;gap:8px;align-items:center;margin:0;color:var(--text)"><input type="checkbox" id="a-vib"> Vibration</label>
+    </div>
+    <div class="knopfreihe"><button id="a-tsonar">Test Sonar</button><button id="a-tgong">Test Gong</button></div>
+    <div class="leise" style="margin-top:8px">Die Töne laufen über die Wecker-Lautstärke von Android, auch bei Lautlos. Frei einstellbare Signalregeln folgen in Stufe A2.</div>
   </div>
   <div class="karte">
-    <details id="a-einst">
-      <summary>Töne und Anzeige</summary>
-      <label>Sonar</label>
-      <div class="segmente" id="a-sonar"><button data-v="0">Aus</button><button data-v="15">15 min</button><button data-v="30">30 min</button><button data-v="60">60 min</button></div>
-      <label>Gong 75 % und 100 % bezogen auf</label>
-      <div class="segmente" id="a-gbezug"><button data-v="kapitel">Kapitel</button><button data-v="tag">Audittag</button><button data-v="audit">Gesamtaudit</button></div>
-      <label>Lautstärke Sonar</label><input type="range" id="a-lsonar" min="0.05" max="1" step="0.05">
-      <label>Lautstärke Gong</label><input type="range" id="a-lgong" min="0.05" max="1" step="0.05">
-      <div class="reihe" style="margin-top:10px">
-        <label style="display:flex;gap:8px;align-items:center;margin:0;color:var(--text)"><input type="checkbox" id="a-vib"> Vibration</label>
-        <label style="display:flex;gap:8px;align-items:center;margin:0;color:var(--text)"><input type="checkbox" id="a-schirm"> Bildschirm an</label>
-      </div>
-      <div class="knopfreihe"><button id="a-tsonar">Test Sonar</button><button id="a-tgong">Test Gong</button></div>
-      <div class="leise" style="margin-top:8px">Die Töne laufen über die Wecker-Lautstärke von Android, auch bei Lautlos.</div>
-    </details>
+    <strong>Anzeige</strong>
+    <div class="reihe" style="margin-top:10px">
+      <label style="display:flex;gap:8px;align-items:center;margin:0;color:var(--text)"><input type="checkbox" id="a-schirm"> Bildschirm während des Audits anlassen</label>
+    </div>
   </div>
-  <div class="unten"><div class="innen"><button class="haupt" id="a-start">Audit starten</button></div></div>
+  <div class="karte">
+    <strong>Erwartete Dokumente</strong>
+    <div class="knopfreihe"><button id="b-doku">Vorgaben je Kapitel bearbeiten</button></div>
+  </div>
+  <div class="karte">
+    <strong>Probelauf</strong>
+    <div class="leise">10 Minuten mit drei Probe-Kapiteln, Sonar alle 2 min, Gong je Kapitel.</div>
+    <div class="knopfreihe"><button id="b-probe">Probelauf starten</button></div>
+  </div>
+  <div class="leise" id="version"></div>
 </div>
 
 <!-- ================= Dokumente-Vorgaben ================= -->
@@ -219,7 +262,9 @@ function laden() {
   d = d || {};
   d.audits = d.audits || [];
   d.doks = d.doks || {};
-  d.einst = Object.assign({ intervall: 30, bezug: 'kapitel', anteilSonar: 0.5, anteilGong: 1, vibration: true, schirm: true }, d.einst || {});
+  d.einst = Object.assign({ intervall: 30, anteilSonar: 0.5, anteilGong: 1, vibration: true, schirm: true }, d.einst || {});
+  d.einst.bezug = 'kapitel';                      // v1.2.0: fest auf den Timeslot
+  d.audits.forEach(dokMigration);
   return d;
 }
 function sichern() {
@@ -242,17 +287,22 @@ function dokText(key) { var k = L.dokKey(key); return daten.doks[k] !== undefine
 // ---------------------------------------------------------------- Navigation
 var ansicht = 'liste';
 function zeige(n) {
-  ['liste', 'edit', 'audit', 'doku'].forEach(function (x) { $('s-' + x).classList.toggle('an', x === n); });
+  ['liste', 'edit', 'audit', 'doku', 'einst', 'kdok'].forEach(function (x) { $('s-' + x).classList.toggle('an', x === n); });
   ansicht = n; window.scrollTo(0, 0);
-  if (n !== 'audit') schirm(false);
+  if (n !== 'audit' && n !== 'kdok') schirm(false);
 }
 // Zurück-Taste von Android: true = in der App zurückgegangen
 function zurueck() {
   if (ansicht === 'liste') return false;
   if (ansicht === 'edit' && edit.vonAudit) { oeffneAudit(edit.vonAudit); return true; }
+  if (ansicht === 'kdok') { kdokZurueck(); return true; }
+  if (ansicht === 'doku') { einstSeite(); return true; }
   zeigeListe(); return true;
 }
 function appWiederDa() { if (ansicht === 'audit') auditAnzeigen(true); if (ansicht === 'liste') zeigeListe(); }
+function einstSeite() { einstZeigen(); zeige('einst'); }
+$('n-zurueck').onclick = function () { zeigeListe(); };
+$('b-einst').onclick = function () { einstSeite(); };
 
 // ---------------------------------------------------------------- Liste
 function laufend() {
@@ -264,21 +314,26 @@ function zeigeListe() {
   var html = '';
   daten.audits.slice().sort(function (a, b) { return (a.kopf.start || '').localeCompare(b.kopf.start || ''); }).forEach(function (a) {
     var tage = a.plan.tage.length || (a.plan.zeilen.length ? a.plan.zeilen[a.plan.zeilen.length - 1].tag : 0);
-    html += '<div class="karte"><div class="titel">' + esc(a.name) + (lauf && lauf.id === a.id ? '<span class="badge">läuft</span>' : '') + '</div>' +
-      '<div class="leise">' + esc(a.kopf.typ || '') + ' · ' + esc(L.isoNachDe(a.kopf.start)) + ' · ' + tage + ' Tag(e) · ' +
-      (a.quelle === 'import' ? 'Import 400.dotm' : 'in der App erstellt') + (a.plan.auditoren.length > 1 ? ' · ' + a.plan.auditoren.length + ' Auditoren' : '') + '</div>' +
-      '<div class="knopfreihe"><button class="haupt" data-a="oeffnen" data-id="' + a.id + '">Öffnen</button>' +
+    html += '<div class="zeile" data-a="oeffnen" data-id="' + a.id + '"><div class="txt"><b>' + esc(a.name) + '</b> <span>· ' +
+      esc(a.kopf.typ || '') + ' · ' + esc(L.isoNachDe(a.kopf.start)) + ' · ' + tage + ' T</span>' +
+      (lauf && lauf.id === a.id ? '<span class="badge">läuft</span>' : '') + '</div>' +
+      '<button class="mehr" data-a="menue" data-id="' + a.id + '" title="Menü">⋮</button></div>' +
+      '<div class="aktionen" id="m-' + a.id + '" style="display:none">' +
       '<button data-a="bearbeiten" data-id="' + a.id + '">Bearbeiten</button>' +
       '<button data-a="export" data-id="' + a.id + '">Export .txt</button>' +
-      '<button class="gefahr" data-a="loeschen" data-id="' + a.id + '">Löschen</button></div></div>';
+      '<button class="gefahr" data-a="loeschen" data-id="' + a.id + '">Löschen</button></div>';
   });
   $('liste').innerHTML = html || '<div class="karte leise">Noch kein Audit. Lege eins an oder importiere Auditzeiten.txt.</div>';
   zeige('liste');
 }
 $('liste').addEventListener('click', function (ev) {
-  var b = ev.target.closest('button'); if (!b) return;
+  var b = ev.target.closest('[data-a]'); if (!b) return;
   var a = auditById(b.dataset.id); if (!a) return;
-  if (b.dataset.a === 'oeffnen') oeffneAudit(a.id);
+  if (b.dataset.a === 'menue') {
+    var m = $('m-' + a.id), offen = m.style.display !== 'none';
+    [].forEach.call(document.querySelectorAll('.aktionen'), function (x) { x.style.display = 'none'; });
+    m.style.display = offen ? 'none' : 'flex';
+  } else if (b.dataset.a === 'oeffnen') oeffneAudit(a.id);
   else if (b.dataset.a === 'bearbeiten') bearbeiten(a);
   else if (b.dataset.a === 'export') exportieren(a);
   else if (b.dataset.a === 'loeschen') {
@@ -296,7 +351,7 @@ $('f-import').onchange = function () {
     try {
       var text = L.textAusBytes(r.result);
       var a = L.importTxt(text);
-      a.id = neueId(); a.original = text; a.haken = {};
+      a.id = neueId(); a.original = text; a.doks = [];
       daten.audits.push(a); sichern(); zeigeListe();
       toast('Importiert: ' + a.name + (a.hinweis ? ' – ' + a.hinweis : ''));
     } catch (e) { alert('Import nicht möglich:\n' + e.message); console.log('import | ' + e); }
@@ -323,7 +378,7 @@ function probelauf() {
   z.forEach(function (x, i) { zeilen.push({ art: 'kapitel', titel: x[0], key: 'Probe', gruppe: i, teil: 1, h: x[1] / 60, tag: 1, je: [{ von: t, bis: t + x[1] }] }); t += x[1]; });
   var a = auditById('probe');
   if (!a) { a = { id: 'probe' }; daten.audits.push(a); }
-  Object.assign(a, { name: 'Probelauf', quelle: 'neu', probe: true, haken: {},
+  Object.assign(a, { name: 'Probelauf', quelle: 'neu', probe: true, doks: [],
     kopf: { kunde: 'Probelauf', typ: 'Test', start: heuteIso(), startzeit: L.uhr(m), tagBeginn: '00:00', tagEnde: '23:59', pause: '0' },
     posten: [], plan: { start: heuteIso(), auditoren: ['LA'], zeilen: zeilen, tage: [] } });
   sichern(); oeffneAudit('probe');
@@ -421,7 +476,7 @@ $('e-speichern').onclick = function () {
   planZeigen();
   if (!edit.plan.zeilen.length) { toast('Kein Kapitel mit Zeit.'); return; }
   var a = edit.audit;
-  if (!a) { a = { id: neueId(), haken: {} }; daten.audits.push(a); }
+  if (!a) { a = { id: neueId(), doks: [] }; daten.audits.push(a); }
   a.name = kopf.kunde || ('Audit ' + L.isoNachDe(kopf.start));
   a.quelle = 'neu'; delete a.original;
   a.kopf = kopf; a.posten = edit.posten;
@@ -456,7 +511,7 @@ $('a-titel').onclick = function () { var a = auditById(aktuell.id); if (a) bearb
 
 function opt() {
   var a = auditById(aktuell.id);
-  return { intervall: a && a.probe ? (daten.einst.intervall ? 2 : 0) : daten.einst.intervall, bezug: daten.einst.bezug };
+  return { intervall: a && a.probe ? (daten.einst.intervall ? 2 : 0) : daten.einst.intervall, bezug: 'kapitel' };
 }
 function istLaufend() { var l = laufend(); return !!(l && l.id === aktuell.id); }
 
@@ -466,7 +521,8 @@ function radBauen() {
   aktuell.ev = L.ereignisse(aktuell.liste, opt(), 0);
   $('a-rad').innerHTML = aktuell.liste.map(function (e, i) {
     return '<div class="rz' + (e.art === 'pause' ? ' pause' : '') + '" data-i="' + i + '"><div class="t">' + esc(e.titel) + '</div>' +
-      '<div class="u">Tag ' + e.tag + ' · ' + L.uhr(e.vonMin) + '–' + L.uhr(e.bisMin) + ' · ' + L.stunden((e.bis - e.von) / 3600000) + ' h</div></div>';
+      '<div class="u">Tag ' + e.tag + ' · ' + L.uhr(e.vonMin) + '–' + L.uhr(e.bisMin) + ' · ' + L.stunden((e.bis - e.von) / 3600000) + ' h' +
+      (e.art === 'kapitel' ? (function (z) { return z.erwartet ? ' · Dok. ' + z.erledigt + '/' + z.erwartet : ''; })(dokZaehler(a, e.key)) : '') + '</div></div>';
   }).join('');
   aktuell.gebaut = aktuell.id + '/' + aktuell.aud;
   radStil();
@@ -492,38 +548,109 @@ function radStil() {
     kinder[i].classList.toggle('vorbei', e.bis <= jetzt);
     kinder[i].classList.toggle('aktuell', i === akt && e.von <= jetzt && jetzt < e.bis);
   }
-  if (gew !== aktuell.gewaehlt) { aktuell.gewaehlt = gew; doksZeigen(); }
+  if (gew !== aktuell.gewaehlt) aktuell.gewaehlt = gew;
 }
 $('a-rad').addEventListener('scroll', function () { aktuell.ruhe = Date.now(); requestAnimationFrame(radStil); }, { passive: true });
-$('a-rad').addEventListener('click', function (ev) { var r = ev.target.closest('.rz'); if (r) radAuf(+r.dataset.i, true); });
+$('a-rad').addEventListener('click', function (ev) { var r = ev.target.closest('.rz'); if (r) kdokOeffnen(+r.dataset.i); });
 $('a-jetzt').onclick = function () { aktuell.ruhe = 0; radAuf(aktuellerIndex(Date.now()), true); };
 
-function doksZeigen() {
-  var a = auditById(aktuell.id), e = aktuell.liste[aktuell.gewaehlt];
-  if (!a || !e) { $('a-dtitel').textContent = ''; $('a-doks').innerHTML = ''; return; }
-  $('a-dtitel').textContent = e.titel + ' · ' + L.uhr(e.vonMin) + '–' + L.uhr(e.bisMin);
-  if (e.art === 'pause') { $('a-doks').innerHTML = '<div class="leise">Pause</div>'; return; }
-  var k = L.dokKey(e.key), zeilen = dokText(e.key).split('\n').filter(function (s) { return s.trim(); });
-  var h = (a.haken || {})[k] || [];
-  $('a-doks').innerHTML = zeilen.length ? zeilen.map(function (s, i) {
-    var an = h.indexOf(i) >= 0;
-    return '<label class="d' + (an ? ' erledigt' : '') + '"><input type="checkbox" data-k="' + esc(k) + '" data-i="' + i + '"' + (an ? ' checked' : '') + '><span>' + esc(s) + '</span></label>';
-  }).join('') : '<div class="leise">Keine Vorgabe – unter „Dokumente“ eintragen.</div>';
+// ---------------------------------------------------------------- Kapitel-Dokumente (v1.2.0)
+// a.doks: [{id, key, nr (Vorgabe-Nr. oder null), name, erledigt, geaendert, geloescht}]
+function jetztStempel() { var d = new Date(); return d.getFullYear() + '-' + L.pad(d.getMonth() + 1) + '-' + L.pad(d.getDate()) + ' ' + L.pad(d.getHours()) + ':' + L.pad(d.getMinutes()) + ':' + L.pad(d.getSeconds()); }
+function dokId() { return 'D-' + jetztStempel().replace(/\D/g, '') + '-' + Math.random().toString(36).slice(2, 6).toUpperCase(); }
+function dokMigration(a) {
+  if (a.doks) return;
+  a.doks = [];
+  Object.keys(a.haken || {}).forEach(function (k) {
+    (a.haken[k] || []).forEach(function (i) { a.doks.push({ id: dokId(), key: k, nr: i, name: '', erledigt: true, geaendert: jetztStempel(), geloescht: false }); });
+  });
+  delete a.haken;
 }
-$('a-doks').addEventListener('change', function (ev) {
-  var c = ev.target, a = auditById(aktuell.id); if (!a || !c.dataset.k) return;
-  a.haken = a.haken || {};
-  var h = a.haken[c.dataset.k] = a.haken[c.dataset.k] || [], i = +c.dataset.i;
-  if (c.checked) { if (h.indexOf(i) < 0) h.push(i); } else h.splice(h.indexOf(i), 1);
-  c.parentNode.classList.toggle('erledigt', c.checked);
+function vorgaben(key) { return dokText(key).split('\n').map(function (x) { return x.trim(); }).filter(function (x) { return x; }); }
+function doksVon(a, k) { return (a.doks || []).filter(function (d) { return d.key === k && !d.geloescht; }); }
+function erledigt(d) { return !!(d && (d.erledigt || (d.name || '').trim())); }
+/** Zähler „erledigt/erwartet“ für einen Timeslot */
+function dokZaehler(a, key) {
+  var k = L.dokKey(key), v = vorgaben(key), ds = doksVon(a, k), n = 0;
+  v.forEach(function (x, i) { if (erledigt(ds.filter(function (d) { return d.nr === i; })[0])) n++; });
+  var extra = ds.filter(function (d) { return d.nr === null && erledigt(d); }).length;
+  return { erledigt: n + extra, erwartet: v.length + ds.filter(function (d) { return d.nr === null; }).length };
+}
+function kuerzelKunde(a) { return String((a.kopf && a.kopf.kunde) || '').split('/')[0].trim(); }
+var kdok = { idx: -1, alle: false };
+function kdokOeffnen(i) {
+  var e = aktuell.liste[i]; if (!e) return;
+  if (e.art === 'pause') { toast('Pause – keine Dokumente'); return; }
+  kdok.idx = i;
+  kdokZeigen();
+  zeige('kdok');
+}
+function kdokZurueck() { zeige('audit'); aktuell.gebaut = ''; auditAnzeigen(false); }
+$('k-zurueck').onclick = kdokZurueck;
+function kdokZeigen() {
+  var a = auditById(aktuell.id), e = aktuell.liste[kdok.idx]; if (!a || !e) return;
+  var k = L.dokKey(e.key), v = vorgaben(e.key), ds = doksVon(a, k);
+  $('k-titel').textContent = e.titel;
+  var z = dokZaehler(a, e.key);
+  $('k-info').textContent = 'Tag ' + e.tag + ' · ' + L.uhr(e.vonMin) + '–' + L.uhr(e.bisMin) + ' · ' + z.erledigt + ' von ' + z.erwartet + ' erledigt';
+  [].forEach.call($('k-filter').children, function (b) { b.classList.toggle('an', (b.dataset.v === '1') === kdok.alle); });
+  var html = '';
+  v.forEach(function (text, i) {
+    var d = ds.filter(function (x) { return x.nr === i; })[0], ok = erledigt(d);
+    html += '<div class="kd' + (ok ? '' : ' offen') + '"><input type="checkbox" data-nr="' + i + '"' + (ok ? ' checked' : '') + '>' +
+      '<input type="text" list="k-bekannt" data-nr="' + i + '" placeholder="' + esc(text) + '" value="' + esc(d ? d.name : '') + '"></div>' +
+      (d && (d.name || '').trim() ? '<div class="kdvorgabe">erwartet: ' + esc(text) + '</div>' : '');
+  });
+  ds.filter(function (x) { return x.nr === null; }).forEach(function (d) {
+    var ok = erledigt(d);
+    html += '<div class="kd' + (ok ? '' : ' offen') + '"><input type="checkbox" data-id="' + d.id + '"' + (ok ? ' checked' : '') + '>' +
+      '<input type="text" list="k-bekannt" data-id="' + d.id + '" placeholder="zusätzliches Dokument" value="' + esc(d.name) + '"></div>';
+  });
+  $('k-liste').innerHTML = html || '<div class="leise">Keine Vorgabe für dieses Kapitel – unter Einstellungen eintragen oder „+ Dokument“.</div>';
+  bekannteNamen(a, k);
+}
+/** Auswahl bekannter Dokumentnamen: dieses Audit und Voraudits mit gleichem Kunden-Teil des Kürzels */
+function bekannteNamen(a, k) {
+  var kk = kuerzelKunde(a), namen = {};
+  daten.audits.forEach(function (x) {
+    if (x.id !== a.id && (!kk || kuerzelKunde(x) !== kk)) return;
+    (x.doks || []).forEach(function (d) {
+      if (d.geloescht || !(d.name || '').trim()) return;
+      if (!kdok.alle && d.key !== k) return;
+      namen[d.name.trim()] = true;
+    });
+  });
+  $('k-bekannt').innerHTML = Object.keys(namen).sort().map(function (n) { return '<option value="' + esc(n) + '">'; }).join('');
+}
+function dokSetzen(a, k, nr, id, feld, wert) {
+  var d = id ? (a.doks || []).filter(function (x) { return x.id === id; })[0]
+             : doksVon(a, k).filter(function (x) { return x.nr === nr; })[0];
+  if (!d) { d = { id: dokId(), key: k, nr: nr, name: '', erledigt: false, geaendert: '', geloescht: false }; a.doks.push(d); }
+  d[feld] = wert;
+  if (feld === 'name' && String(wert).trim()) d.erledigt = true;
+  d.geaendert = jetztStempel();
   sichern();
+}
+$('k-liste').addEventListener('change', function (ev) {
+  var c = ev.target, a = auditById(aktuell.id), e = aktuell.liste[kdok.idx]; if (!a || !e) return;
+  var k = L.dokKey(e.key), nr = c.dataset.nr !== undefined ? +c.dataset.nr : null, id = c.dataset.id || null;
+  if (c.type === 'checkbox') dokSetzen(a, k, nr, id, 'erledigt', c.checked);
+  else dokSetzen(a, k, nr, id, 'name', c.value.trim());
+  kdokZeigen();
 });
+$('k-filter').onclick = function (ev) { var b = ev.target.closest('button'); if (!b) return; kdok.alle = b.dataset.v === '1'; kdokZeigen(); };
+$('k-neu').onclick = function () {
+  var a = auditById(aktuell.id), e = aktuell.liste[kdok.idx]; if (!a || !e) return;
+  a.doks.push({ id: dokId(), key: L.dokKey(e.key), nr: null, name: '', erledigt: false, geaendert: jetztStempel(), geloescht: false });
+  sichern(); kdokZeigen();
+  var f = $('k-liste').querySelectorAll('input[type=text]'); if (f.length) f[f.length - 1].focus();
+};
 
 function fortschritt(jetzt) {
   var l = aktuell.liste, i = -1, k;
   for (k = 0; k < l.length; k++) if (l[k].art === 'kapitel' && jetzt >= l[k].von && jetzt < l[k].bis) { i = k; break; }
   if (i < 0) return null;
-  var e = l[i], bez = daten.einst.bezug;
+  var e = l[i], bez = 'kapitel';
   var teile = l.filter(function (x) {
     if (x.art !== 'kapitel') return false;
     if (bez === 'audit') return true;
@@ -533,7 +660,7 @@ function fortschritt(jetzt) {
   var ges = 0, getan = 0;
   teile.forEach(function (x) { ges += x.bis - x.von; if (x.bis <= jetzt) getan += x.bis - x.von; else if (x.von <= jetzt) getan += jetzt - x.von; });
   var kap = l.filter(function (x) { return x.art === 'kapitel' && (e.gruppe >= 0 ? x.gruppe === e.gruppe : x.nr === e.nr); });
-  return { e: e, anteil: ges ? getan / ges : 0, kapEnde: kap[kap.length - 1].bis, restBezug: ges - getan };
+  return { e: e, anteil: ges ? getan / ges : 0, beginn: kap[0].von, kapEnde: kap[kap.length - 1].bis, restBezug: ges - getan };
 }
 
 function auditAnzeigen(zentrieren) {
@@ -544,7 +671,8 @@ function auditAnzeigen(zentrieren) {
   $('a-datum').textContent = L.datumText(d);
   var f = fortschritt(jetzt), akt = aktuellerIndex(jetzt), e = l[akt];
   var restEl = $('a-rest');
-  var bogen = f ? { von: f.e.von, bis: f.kapEnde } : (e && e.von <= jetzt && jetzt < e.bis ? { von: e.von, bis: e.bis } : null);
+  var bogen = f ? { von: f.beginn, bis: f.kapEnde, anteil: f.anteil, farbe: f.anteil >= 0.75 ? 'var(--warn)' : 'var(--akzent)' }
+    : (e && e.von <= jetzt && jetzt < e.bis ? { von: e.von, bis: e.bis, anteil: (jetzt - e.von) / (e.bis - e.von), farbe: 'var(--leise)' } : null);
   uhrZeichnen(d, bogen);
   if (!l.length) { $('a-abschnitt').textContent = 'Kein Zeitplan'; return; }
   if (f) {
@@ -552,8 +680,7 @@ function auditAnzeigen(zentrieren) {
     $('a-abschnitt').textContent = f.e.titel.replace(/\s*\(Teil \d+\)$/, '');
     $('a-zeit').textContent = 'bis ' + hm(f.kapEnde);
     restEl.textContent = dauer(f.kapEnde - jetzt);
-    var bez = ({ kapitel: 'Kapitel', tag: 'Audittag', audit: 'Audit' })[daten.einst.bezug];
-    $('a-bezug').textContent = bez + ' ' + Math.floor(f.anteil * 100) + ' %';
+    $('a-bezug').textContent = 'Timeslot ' + Math.floor(f.anteil * 100) + ' %';
     timerZeichnen(f.anteil, dauer(f.restBezug), f.anteil >= 0.75 ? 'var(--warn)' : 'var(--akzent)', true);
   } else {
     if (e && e.art === 'pause' && jetzt >= e.von && jetzt < e.bis) {
@@ -618,17 +745,21 @@ function striche(lang) {
   return s;
 }
 var strichCache = null;
-/** Uhrzeit: Stunden-, Minuten-, Sekundenzeiger; außen der Bogen des laufenden Kapitels (12-h-Zifferblatt). */
+/** Uhrzeit (12-h-Zifferblatt). v1.2.0: Für den laufenden Timeslot ist das ganze Kreissegment von Beginn
+ *  bis Ende gefüllt – wie beim Timer: abgelaufen grau, Rest farbig, 75-%-Marke im Segment. */
 function uhrZeichnen(d, bogen) {
   strichCache = strichCache || striche(true);
   var s = d.getSeconds(), m = d.getMinutes() + s / 60, h = (d.getHours() % 12) + m / 60;
   var svg = '<circle cx="100" cy="100" r="96" fill="var(--karte2)"/>';
   if (bogen) {
-    var a = new Date(bogen.von), b = new Date(bogen.bis);
-    var w1 = ((a.getHours() % 12) * 60 + a.getMinutes()) / 2, w2 = w1 + Math.min(719, (bogen.bis - bogen.von) / 60000) / 2;
-    var wJ = ((d.getHours() % 12) * 60 + m) / 2; if (wJ < w1) wJ += 360;
-    svg += '<path d="' + bogenPfad(w1, w2, 96) + '" fill="none" stroke="var(--linie)" stroke-width="7"/>';
-    if (wJ > w1) svg += '<path d="' + bogenPfad(w1, Math.min(w2, wJ), 96) + '" fill="none" stroke="var(--akzent)" stroke-width="7"/>';
+    var a = new Date(bogen.von);
+    var w1 = ((a.getHours() % 12) * 60 + a.getMinutes() + a.getSeconds() / 60) / 2;
+    var span = Math.min(359.5, (bogen.bis - bogen.von) / 120000);
+    var wJ = w1 + span * Math.max(0, Math.min(1, bogen.anteil || 0));
+    svg += sektor(w1, w1 + span, 90) + ' fill="var(--linie)"/>';
+    if (w1 + span - wJ > 0.05) svg += sektor(wJ, w1 + span, 90) + ' fill="' + bogen.farbe + '" fill-opacity="0.85"/>';
+    var p = punkt(w1 + span * 0.75, 98), q = punkt(w1 + span * 0.75, 70);
+    svg += '<line x1="' + p[0] + '" y1="' + p[1] + '" x2="' + q[0] + '" y2="' + q[1] + '" stroke="var(--warn)" stroke-width="4" stroke-linecap="round"/>';
   }
   svg += strichCache;
   svg += zeiger(h * 30, 50, 6, 'var(--text)', 10) + zeiger(m * 6, 74, 4, 'var(--text)', 12) + zeiger(s * 6, 82, 1.6, 'var(--rot)', 18);
@@ -694,21 +825,20 @@ $('a-tgong').onclick = function () { testTon('gong75'); };
 function einstZeigen() {
   var e = daten.einst;
   [].forEach.call($('a-sonar').children, function (b) { b.classList.toggle('an', +b.dataset.v === +e.intervall); });
-  [].forEach.call($('a-gbezug').children, function (b) { b.classList.toggle('an', b.dataset.v === e.bezug); });
   $('a-lsonar').value = e.anteilSonar; $('a-lgong').value = e.anteilGong; $('a-vib').checked = !!e.vibration; $('a-schirm').checked = !!e.schirm;
 }
 function einstGeaendert(neuPlanen) {
   sichern(); einstZeigen();
-  aktuell.ev = L.ereignisse(aktuell.liste, opt(), 0);
-  if (neuPlanen && istLaufend()) starten(true);
-  auditAnzeigen(false);
+  var l = laufend();
+  if (neuPlanen && l && auditById(l.id)) {            // laufendes Audit mit neuen Einstellungen neu planen
+    aktuell.id = l.id; aktuell.aud = l.aud || 0; aktuell.gebaut = ''; starten(true);
+  }
 }
 $('a-sonar').onclick = function (ev) { var b = ev.target.closest('button'); if (!b) return; daten.einst.intervall = +b.dataset.v; einstGeaendert(true); };
-$('a-gbezug').onclick = function (ev) { var b = ev.target.closest('button'); if (!b) return; daten.einst.bezug = b.dataset.v; einstGeaendert(true); };
 $('a-lsonar').onchange = function () { daten.einst.anteilSonar = +this.value; einstGeaendert(true); };
 $('a-lgong').onchange = function () { daten.einst.anteilGong = +this.value; einstGeaendert(true); };
 $('a-vib').onchange = function () { daten.einst.vibration = this.checked; einstGeaendert(true); };
-$('a-schirm').onchange = function () { daten.einst.schirm = this.checked; sichern(); schirm(this.checked); };
+$('a-schirm').onchange = function () { daten.einst.schirm = this.checked; sichern(); };
 
 var wakeLock = null;
 function schirm(an) {
@@ -751,13 +881,13 @@ function dokuZeigen() {
   }).join('');
   zeige('doku');
 }
-$('d-zurueck').onclick = function () { zeigeListe(); };
+$('d-zurueck').onclick = function () { einstSeite(); };
 $('d-speichern').onclick = function () {
   [].forEach.call($('d-liste').querySelectorAll('textarea'), function (t) {
     var k = t.dataset.k, v = t.value.replace(/\r/g, '').trim();
     if (v === (L.DOKUMENTE[k] || '')) delete daten.doks[k]; else daten.doks[k] = v;
   });
-  sichern(); toast('Gespeichert'); zeigeListe();
+  sichern(); toast('Gespeichert'); einstSeite();
 };
 $('d-vorgabe').onclick = function () { if (confirm('Alle Dokumente auf die Vorbelegung zurücksetzen?')) { daten.doks = {}; sichern(); dokuZeigen(); } };
 
