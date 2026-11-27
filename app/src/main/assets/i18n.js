@@ -1,6 +1,6 @@
 /*
  * Auditplan – Sprache DE/EN
- * Version: 2.0.11 (2026-11-27)
+ * Version: 2.0.15 (2026-11-27)
  * Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
  *
  * Die Oberfläche ist auf Deutsch geschrieben. Bei Sprache EN übersetzt dieses Modul
@@ -17,16 +17,21 @@
  *   2.0.9 (2026-11-27) Erste Fassung (Wunsch Frank 2026-11-27, Chat 400_App_003).
  *   2.0.10 (2026-11-27) Englische Begriffe wie im TimeKeeper am PC: Order, Position, remarks, time slot.
  *   2.0.11 (2026-11-27) Seite Timeslot, Darstellung Dunkel/Hell.
+ *   2.0.15 (2026-11-27) Arbeitstag mit Listen und Fenstern für Aufträge, Positionen, Timeslots.
  */
 (function (global) {
   'use strict';
 
-  var VERSION = '2.0.11';
+  var VERSION = '2.0.15';
   var SCHLUESSEL = 'auditplan.sprache';
 
   // Ganze Texte (nach Trim verglichen)
   var GANZ = {
-    'Auditplan': 'Audit plan', 'Auditplan entsperren': 'Unlock audit plan', 'Entsperren': 'Unlock', 'Festlegen': 'Set', 'Darstellung': 'Appearance', 'Kopfdaten': 'Header data', 'Folge': 'Order', 'h': 'h', '✓': '✓', 'Dunkel': 'Dark', 'Hell': 'Light', 'Timeslot': 'Time slot',
+    'Auditplan': 'Audit plan', 'Auditplan entsperren': 'Unlock audit plan', 'Entsperren': 'Unlock', 'Festlegen': 'Set', 'Darstellung': 'Appearance', 'Kopfdaten': 'Header data', 'Aufträge': 'Orders', 'Positionen': 'Positions', 'Timeslots': 'Time slots',
+    'ohne Position': 'no position', 'Neuer Auftrag': 'New order', 'Neue Position': 'New position', '+ Neuer Auftrag': '+ New order',
+    '+ Neue Position': '+ New position', 'Anzeige Handy': 'Display on phone', 'Vorgabe (min)': 'Target (min)', 'leer = ohne Countdown': 'empty = no countdown',
+    'Auftrag fehlt': 'Order missing', 'Position fehlt': 'Position missing', 'Auftrag gibt es schon': 'Order already exists',
+    'Position gibt es schon': 'Position already exists', 'Vorgabe in Minuten': 'Target in minutes', 'Folge': 'Order', 'h': 'h', '✓': '✓', 'Dunkel': 'Dark', 'Hell': 'Light', 'Timeslot': 'Time slot',
     'Planzeit (min)': 'Planned time (min)', 'Gespeichert': 'Saved', 'hh:mm': 'hh:mm',
     'PIN eingeben': 'Enter PIN', 'PIN wiederholen': 'Repeat PIN', 'PIN ändern': 'Change PIN', 'PIN festlegen': 'Set PIN',
     'Neue PIN': 'New PIN', 'Sperren': 'Lock', 'Einstellungen': 'Settings', '+ Neues Audit': '+ New audit',
@@ -164,7 +169,9 @@
     ['Wert muss größer 0 sein', 'Value must be greater than 0'], ['Prozent höchstens 100', 'Percent at most 100'],
     ['Zu viele Fehlversuche. Weiter um ', 'Too many failed attempts. Continue at '], ['. Wartezeit 5 min.', '. Waiting time 5 min.'],
     ['Auf beiden Seiten geändert (', 'Changed on both sides ('], ['Gespeichert: Download/Auditplan/', 'Saved: Download/Auditplan/'],
-    ['Ein Timeslot', 'A timeslot'], ['Abhaken und Dokumentnamen im Audit: Tipp auf die Zeile im Wählrad.', 'Tick off and document names in the audit: tap the row in the dial.'], ['Status ', 'Status '], [' · Dauer ', ' · duration '], ['Arbeitstag · ', 'Work day · '],
+    ['Ein Timeslot', 'A timeslot'], ['Tipp auf einen Eintrag: bearbeiten, löschen, hinzufügen. Buchen und Ignorieren nur am PC.', 'Tap an entry: edit, delete, add. Booking and ignoring only on the PC.'],
+    ['“ löschen? Seine Timeslots bleiben erhalten.', '”? Its time slots are kept.'], ['“ löschen? Ihre Timeslots bleiben erhalten.', '”? Its time slots are kept.'],
+    ['Auftrag „', 'Delete order “'], ['Position „', 'Delete position “'], ['Auftrag ', 'Order '], ['Abhaken und Dokumentnamen im Audit: Tipp auf die Zeile im Wählrad.', 'Tick off and document names in the audit: tap the row in the dial.'], ['Status ', 'Status '], [' · Dauer ', ' · duration '], ['Arbeitstag · ', 'Work day · '],
     ['–läuft', '–running'], ['Vibration kurz', 'vibration short'], ['Vibration lang', 'vibration long'], ['Vibration aus', 'vibration off'],
     ['Arbeitstag · ', 'Work day · '], ['Probelauf · ', 'Trial run · '], ['Dieses Audit hat ', 'This audit has '], ['Die Datei wurde ', 'The file was '],
     ['Audit läuft – ', 'Audit running – '], [' Töne geplant', ' signals planned'], ['Ton übernommen: ', 'Sound applied: '],

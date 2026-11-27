@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   Auditplan – Oberfläche
-  Version: 2.0.14 (2026-11-27)
+  Version: 2.0.15 (2026-11-27)
   Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
   Läuft in der Android-Hülle (window.AndroidBridge) und zum Ausprobieren auch im Browser.
   Versionshistorie:
@@ -68,6 +68,11 @@
                        des Audits (gelb bei Abweichung = Lücke oder Überhang).
     2.0.14 (2026-11-27) Editor, Seite Kapitel: Tipp auf einen Kapitelnamen zeigt die erwarteten
                        Dokumente je Unterpunkt (Vorgaben aus den Einstellungen; Wunsch Frank).
+    2.0.15 (2026-11-27) Arbeitstag neu aufgebaut wie der TimeKeeper am PC (Wunsch Frank): unter den
+                       Uhren der Kalendertag, darauf Listen Aufträge, Positionen (des gewählten
+                       Auftrags) und Timeslots (des Tages). Tipp auf einen Eintrag wählt ihn und
+                       öffnet ein Fenster zum Bearbeiten, Löschen und Hinzufügen; „+“ legt neu an.
+                       Start/Wechsel/Stopp mit Planzeit für die gewählte Position.
 -->
 <html lang="de">
 <head>
@@ -211,6 +216,19 @@ textarea{min-height:110px}
 .slot .h{flex:0 0 auto;color:var(--leise);font-variant-numeric:tabular-nums}
 .slot .pfeil{flex:0 0 auto;color:var(--leise)}
 #s-liste .reihe button{flex:1;white-space:nowrap;padding:10px 6px;min-width:0;overflow:hidden;text-overflow:ellipsis}
+/* 2.0.15: Listen im Arbeitstag */
+.lbkopf{display:flex;align-items:center;justify-content:space-between;margin:10px 0 4px}
+.lbkopf:first-child{margin-top:0}
+.lbkopf button{padding:3px 14px;font-size:18px;line-height:1.2}
+.listbox{max-height:190px;overflow-y:auto;border:1px solid var(--linie);border-radius:10px;background:var(--karte2)}
+.lbz{padding:9px 10px;border-bottom:1px solid var(--linie);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;font-size:14px}
+.lbz:last-child,.listbox .slot:last-child{border-bottom:0}
+.lbz.an{background:var(--akzent);color:#062a30;font-weight:600}
+.lbz .leise{font-size:13px}
+.lbz.an .leise{color:inherit;opacity:.75}
+.listbox .slot{padding:9px 10px}
+.listbox .leer{padding:9px 10px;color:var(--leise);font-size:14px}
+html[data-thema=hell] .lbz.an{color:#fff}
 /* 2.0.11: Darstellung Hell */
 html[data-thema=hell]{--bg:#f3f5f7;--karte:#ffffff;--karte2:#e8ecf0;--linie:#d0d7de;--text:#17202a;--leise:#5d6873;
   --akzent:#0b8ea3;--warn:#b97d0c;--rot:#cf3a31;--gruen:#2a9a57}
@@ -336,21 +354,29 @@ html[data-thema=hell] #toast{background:#2b3540}
       <div class="unter"><strong id="t-dauer">–</strong> · <span id="t-bezug">kein Timeslot</span></div></div>
   </div>
   <div class="karte">
+    <div class="reihe"><strong style="flex:3" id="t-summe">Heute</strong><input id="t-datumwahl" type="date" style="flex:2"></div>
+  </div>
+  <div class="karte">
+    <div class="lbkopf"><strong>Aufträge</strong><button id="t-order-neu">+</button></div>
+    <div class="listbox" id="t-orders"></div>
+    <div class="lbkopf"><strong>Positionen</strong><button id="t-pos-neu">+</button></div>
+    <div class="listbox" id="t-poss"></div>
+  </div>
+  <div class="karte">
+    <div id="t-wahl" style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+    <div class="leise" id="t-rest"></div>
     <div class="raster">
-      <div><label>Auftrag</label><input id="t-auftrag" type="text" list="dl-auftrag" placeholder="tippen oder wählen" autocomplete="off"></div>
-      <div><label>Position</label><input id="t-pos" type="text" list="dl-pos" placeholder="tippen oder wählen" autocomplete="off"></div>
+      <div><label>Planzeit (min)</label><input id="t-plan" type="text" inputmode="numeric" placeholder="leer = ohne Countdown"></div>
+      <div><label>Bemerkung</label><input id="t-bem" type="text"></div>
     </div>
-    <datalist id="dl-auftrag"></datalist><datalist id="dl-pos"></datalist>
-    <label>Planzeit (min, leer = ohne Countdown)</label><input id="t-plan" type="text" inputmode="numeric" placeholder="z. B. 90">
-    <div class="leise" id="t-rest" style="margin-top:6px"></div>
-    <label>Bemerkung</label><input id="t-bem" type="text">
     <div class="aktion2"><button class="haupt" id="t-start">Start</button><button id="t-stopp">Stopp</button></div>
   </div>
   <div class="karte">
-    <div class="reihe"><strong style="flex:3" id="t-summe">Heute</strong><input id="t-datumwahl" type="date" style="flex:2"></div>
-    <div id="t-slots"></div>
-    <div class="leise" style="margin-top:6px">Tipp auf einen Timeslot: ändern, teilen, parken, löschen. Buchen und Ignorieren nur am PC.</div>
+    <div class="lbkopf"><strong>Timeslots</strong><button id="t-slot-neu">+</button></div>
+    <div class="listbox" id="t-slots"></div>
+    <div class="leise" style="margin-top:6px">Tipp auf einen Eintrag: bearbeiten, löschen, hinzufügen. Buchen und Ignorieren nur am PC.</div>
   </div>
+  <datalist id="dl-auftrag"></datalist><datalist id="dl-pos"></datalist>
 </div>
 
 <!-- ================= Timeslot (2.0.11) ================= -->
@@ -1495,7 +1521,7 @@ function tagSumme(iso) {
   return n;
 }
 function auftraege() {
-  var a = daten.orders.filter(function (o) { return o.status !== 'abgeschlossen'; }).map(function (o) { return [o.auftrag, o.anzeige || o.auftrag]; });
+  var a = daten.orders.filter(function (o) { return o.status !== 'abgeschlossen' && !o.geloescht; }).map(function (o) { return [o.auftrag, o.anzeige || o.auftrag]; });
   daten.audits.forEach(function (x) {                                   // Auftrags-Teil laufender Audits, falls der PC sie noch nicht kennt
     var t = String(x.name || '').split('/')[1];
     if (!x.geloescht && t && !a.some(function (y) { return y[0] === t; })) a.push([t, t + ' (Audit)']);
@@ -1504,47 +1530,135 @@ function auftraege() {
   return a;
 }
 function positionen(auftrag) {
-  var p = daten.pos.filter(function (x) { return x.auftrag === auftrag && x.aktiv !== false; })
+  var p = daten.pos.filter(function (x) { return x.auftrag === auftrag && x.aktiv !== false && !x.geloescht; })
     .sort(function (a, b) { return (+a.sort || 0) - (+b.sort || 0); }).map(function (x) { return x.position; });
   if (auftrag !== '_INTERN' && p.indexOf(daten.einst.auditPos) < 0 && /^A-/.test(auftrag)) p.unshift(daten.einst.auditPos);
   if (p.indexOf('_UNASSIGNED') < 0) p.push('_UNASSIGNED');
   return p;
 }
-function tagOeffnen() { tagWahl = heuteIso(); $('t-datumwahl').value = tagWahl; tagAuswahl(); tagAnzeigen(); zeige('tag'); }
+var selAu = null, selPo = null;                                   // 2.0.15: gewählter Auftrag / Position
+function tagOeffnen() {
+  tagWahl = heuteIso(); $('t-datumwahl').value = tagWahl;
+  var l = laufenderSlot(); if (l) { selAu = l.auftrag; selPo = l.position; }
+  tagAuswahl(); tagAnzeigen(); zeige('tag');
+}
 $('t-zurueck').onclick = function () { zeigeListe(); };
 $('t-datumwahl').onchange = function () { tagWahl = this.value || heuteIso(); tagAnzeigen(); };
+function orderVon(au) { return daten.orders.filter(function (o) { return o.auftrag === au && !o.geloescht; })[0] || null; }
+function posVon(au, po) { return daten.pos.filter(function (x) { return x.auftrag === au && x.position === po && !x.geloescht; })[0] || null; }
+/** Listen Aufträge und Positionen neu zeichnen (nur bei Änderungen, nicht im Sekundentakt) */
 function tagAuswahl() {
-  // 2.0.6: Eingabefelder mit Vorschlagsliste statt Auswahllisten
-  var s = laufenderSlot(), a = auftraege();
+  var a = auftraege();
+  if (!selAu || !a.some(function (x) { return x[0] === selAu; })) selAu = a[0] ? a[0][0] : '_UNASSIGNED';
+  $('t-orders').innerHTML = a.map(function (x) {
+    var o = orderVon(x[0]), zus = o && o.anzeige && o.anzeige !== x[0] ? ' <span class="leise">· ' + esc(o.anzeige) + '</span>' : '';
+    return '<div class="lbz' + (x[0] === selAu ? ' an' : '') + '" data-au="' + esc(x[0]) + '">' + esc(x[0] === '_UNASSIGNED' ? 'ohne Auftrag' : x[0]) + zus + '</div>';
+  }).join('');
   $('dl-auftrag').innerHTML = a.map(function (x) { return '<option value="' + esc(x[0]) + '">' + esc(x[1]) + '</option>'; }).join('');
-  if (s) $('t-auftrag').value = s.auftrag === '_UNASSIGNED' ? '' : s.auftrag;
-  posAuswahl(s ? s.position : null);
+  posAuswahl();
 }
-function posAuswahl(gew) {
-  var p = positionen($('t-auftrag').value.trim() || '_UNASSIGNED');
+function posAuswahl() {
+  var p = positionen(selAu);
+  if (!selPo || p.indexOf(selPo) < 0) selPo = p[0] || '_UNASSIGNED';
+  $('t-poss').innerHTML = p.map(function (x) {
+    var d = posVon(selAu, x), v = d && +d.vorgabe > 0 ? ' <span class="leise">· ' + L.stunden(+d.vorgabe / 60) + ' h</span>' : '';
+    return '<div class="lbz' + (x === selPo ? ' an' : '') + '" data-po="' + esc(x) + '">' + esc(x === '_UNASSIGNED' ? 'ohne Position' : x) + v + '</div>';
+  }).join('');
   $('dl-pos').innerHTML = p.map(function (x) { return '<option value="' + esc(x) + '"></option>'; }).join('');
-  if (gew !== null && gew !== undefined) $('t-pos').value = gew === '_UNASSIGNED' ? '' : gew;
   restZeigen();
 }
-$('t-auftrag').onchange = function () { posAuswahl(null); };
-$('t-pos').onchange = restZeigen;
-/** 2.0.6: auf dem Handy eingetippten Auftrag bzw. Aufgabe merken, damit sie in der Liste stehen */
-function auftragMerken(au, po) {
-  if (au !== '_UNASSIGNED' && !daten.orders.some(function (o) { return o.auftrag === au; }))
-    daten.orders.push({ auftrag: au, anzeige: au, status: 'in Arbeit', lokal: true, geaendert: jetztStempel(), geloescht: false });
-  if (po !== '_UNASSIGNED' && !daten.pos.some(function (x) { return x.auftrag === au && x.position === po; }))
-    daten.pos.push({ auftrag: au, position: po, vorgabe: 0, sort: 0, aktiv: true, lokal: true, geaendert: jetztStempel(), geloescht: false });
-}
 function restZeigen() {
-  var au = $('t-auftrag').value.trim() || '_UNASSIGNED', po = $('t-pos').value.trim() || '_UNASSIGNED';
-  var p = daten.pos.filter(function (x) { return x.auftrag === au && x.position === po; })[0];
+  var au = selAu || '_UNASSIGNED', po = selPo || '_UNASSIGNED', p = posVon(au, po);
+  $('t-wahl').textContent = (au === '_UNASSIGNED' ? 'ohne Auftrag' : au) + ' / ' + (po === '_UNASSIGNED' ? 'ohne Position' : po);
   var ist = 0; daten.slots.forEach(function (s) { if (!s.geloescht && s.auftrag === au && s.position === po) ist += slotDauer(s); });
   $('t-rest').textContent = p && +p.vorgabe > 0 ? 'Vorgabe ' + L.stunden(+p.vorgabe / 60) + ' h · erfasst ' + L.stunden(Math.round(ist / 900000) / 4) +
     ' h · Rest ' + L.stunden(Math.round((p.vorgabe * 60000 - ist) / 900000) / 4) + ' h' : 'Erfasst ' + L.stunden(Math.round(ist / 900000) / 4) + ' h';
 }
+/** auf dem Handy eingetippten Auftrag bzw. Position merken (Timeslot-Seite) */
+function auftragMerken(au, po) {
+  if (au !== '_UNASSIGNED' && !orderVon(au))
+    daten.orders.push({ auftrag: au, anzeige: au, status: 'in Arbeit', lokal: true, geaendert: jetztStempel(), geloescht: false });
+  if (po !== '_UNASSIGNED' && !posVon(au, po))
+    daten.pos.push({ auftrag: au, position: po, vorgabe: 0, sort: 0, aktiv: true, lokal: true, geaendert: jetztStempel(), geloescht: false });
+}
+// --- Fenster Auftrag ---
+$('t-orders').addEventListener('click', function (ev) {
+  var r = ev.target.closest('.lbz'); if (!r) return;
+  selAu = r.dataset.au; selPo = null; tagAuswahl();
+  if (selAu !== '_UNASSIGNED') auftragFenster(selAu);
+});
+$('t-order-neu').onclick = function () { auftragFenster(null); };
+function auftragFenster(au) {
+  var o = au ? orderVon(au) : null, neu = !au;
+  dialog(neu ? 'Neuer Auftrag' : 'Auftrag ' + au,
+    '<label>Auftrag</label><input id="of-nr" type="text" value="' + esc(au || '') + '"' + (neu || (o && o.lokal) ? '' : ' readonly') + '>' +
+    '<label>Anzeige Handy</label><input id="of-anz" type="text" value="' + esc(o && o.anzeige !== au ? o.anzeige : '') + '">' +
+    (neu ? '' : '<div class="knopfreihe"><button id="of-neu">+ Neuer Auftrag</button><button class="gefahr" id="of-del">Löschen</button></div>'),
+    [{ text: 'Abbrechen' }, { text: 'Speichern', haupt: true, fn: function () {
+      var nr = $('of-nr').value.trim(), anz = $('of-anz').value.trim();
+      if (!nr) { toast('Auftrag fehlt'); return false; }
+      if (nr !== au && orderVon(nr)) { toast('Auftrag gibt es schon'); return false; }
+      if (neu) daten.orders.push({ auftrag: nr, anzeige: anz || nr, status: 'in Arbeit', lokal: true, geaendert: jetztStempel(), geloescht: false });
+      else {
+        if (!o) { o = { auftrag: au, status: 'in Arbeit', lokal: true, geloescht: false }; daten.orders.push(o); }
+        if (nr !== au) {                                              // Nummer geändert: Positionen und Timeslots mitnehmen
+          daten.pos.forEach(function (x) { if (x.auftrag === au) { x.auftrag = nr; x.geaendert = jetztStempel(); } });
+          daten.slots.forEach(function (x) { if (x.auftrag === au) { x.auftrag = nr; x.geaendert = jetztStempel(); } });
+        }
+        o.auftrag = nr; o.anzeige = anz || nr; o.geaendert = jetztStempel();
+      }
+      selAu = nr; sichern(); tagAuswahl(); tagAnzeigen();
+    } }]);
+  if (!neu) {
+    $('of-neu').onclick = function () { dlgZu(); auftragFenster(null); };
+    $('of-del').onclick = function () {
+      if (!confirm('Auftrag „' + au + '“ löschen? Seine Timeslots bleiben erhalten.')) return;
+      if (o) { o.geloescht = true; o.geaendert = jetztStempel(); }
+      daten.pos.forEach(function (x) { if (x.auftrag === au) { x.geloescht = true; x.geaendert = jetztStempel(); } });
+      selAu = null; sichern(); dlgZu(); tagAuswahl(); tagAnzeigen();
+    };
+  }
+}
+// --- Fenster Position ---
+$('t-poss').addEventListener('click', function (ev) {
+  var r = ev.target.closest('.lbz'); if (!r) return;
+  selPo = r.dataset.po; posAuswahl();
+  if (selPo !== '_UNASSIGNED') posFenster(selPo);
+});
+$('t-pos-neu').onclick = function () { posFenster(null); };
+function posFenster(po) {
+  var au = selAu || '_UNASSIGNED', d = po ? posVon(au, po) : null, neu = !po;
+  dialog(neu ? 'Neue Position' : 'Position ' + po,
+    '<div class="leise">Auftrag ' + esc(au === '_UNASSIGNED' ? 'ohne Auftrag' : au) + '</div>' +
+    '<label>Position</label><input id="pf-name" type="text" value="' + esc(po || '') + '">' +
+    '<label>Vorgabe (min)</label><input id="pf-vorg" type="text" inputmode="numeric" value="' + (d && +d.vorgabe > 0 ? d.vorgabe : '') + '">' +
+    (neu ? '' : '<div class="knopfreihe"><button id="pf-neu">+ Neue Position</button><button class="gefahr" id="pf-del">Löschen</button></div>'),
+    [{ text: 'Abbrechen' }, { text: 'Speichern', haupt: true, fn: function () {
+      var nm = $('pf-name').value.trim(), vg = $('pf-vorg').value.trim();
+      if (!nm) { toast('Position fehlt'); return false; }
+      if (vg && !(+vg >= 0)) { toast('Vorgabe in Minuten'); return false; }
+      if (nm !== po && posVon(au, nm)) { toast('Position gibt es schon'); return false; }
+      if (au !== '_UNASSIGNED' && !orderVon(au)) auftragMerken(au, '_UNASSIGNED');
+      if (neu || !d) {
+        d = { auftrag: au, position: nm, vorgabe: 0, sort: 0, aktiv: true, lokal: true, geloescht: false }; daten.pos.push(d);
+      }
+      if (!neu && nm !== po)                                           // umbenannt: Timeslots mitnehmen (wie TsPosRename)
+        daten.slots.forEach(function (x) { if (x.auftrag === au && x.position === po) { x.position = nm; x.geaendert = jetztStempel(); } });
+      d.position = nm; d.vorgabe = vg ? Math.round(+vg) : 0; d.geaendert = jetztStempel();
+      selPo = nm; sichern(); posAuswahl(); tagAnzeigen();
+    } }]);
+  if (!neu) {
+    $('pf-neu').onclick = function () { dlgZu(); posFenster(null); };
+    $('pf-del').onclick = function () {
+      if (!confirm('Position „' + po + '“ löschen? Ihre Timeslots bleiben erhalten.')) return;
+      if (d) { d.geloescht = true; d.geaendert = jetztStempel(); }
+      selPo = null; sichern(); dlgZu(); posAuswahl(); tagAnzeigen();
+    };
+  }
+}
 function slotStarten(auftrag, position, bem, planMin) {
   var jetzt = Math.floor(Date.now() / 60000) * 60000, l = laufenderSlot();
-  if (l) { l.ende = Math.max(jetzt, l.start + 60000); l.geaendert = jetztStempel(); }   // Wechsel beendet den laufenden Slot
+  if (l) { l.ende = Math.max(jetzt, l.start + 60000); l.geaendert = jetztStempel(); }   // Wechsel beendet den laufenden Timeslot
   daten.slots.push({ auftrag: auftrag, position: position || '_UNASSIGNED', start: jetzt, ende: 0, status: 'open', bem: bem || '',
     planMin: +planMin > 0 ? Math.round(+planMin) : 0,                  // 2.0.6: Planzeit in Minuten (0 = ohne)
     geaendert: jetztStempel(), geloescht: false });
@@ -1555,14 +1669,21 @@ function slotStoppen() {
   l.ende = Math.max(Math.floor(Date.now() / 60000) * 60000, l.start + 60000); l.geaendert = jetztStempel(); sichern(); return true;
 }
 $('t-start').onclick = function () {
-  var au = $('t-auftrag').value.trim() || '_UNASSIGNED', po = $('t-pos').value.trim() || '_UNASSIGNED';
+  var au = selAu || '_UNASSIGNED', po = selPo || '_UNASSIGNED';
   var pl = $('t-plan').value.trim().replace(',', '.');
   if (pl && !(+pl > 0)) { toast('Planzeit in Minuten, z. B. 90'); return; }
-  auftragMerken(au, po);
   slotStarten(au, po, $('t-bem').value.trim(), pl ? +pl : 0);
-  $('t-bem').value = ''; $('t-plan').value = ''; toast('Timeslot gestartet'); tagAuswahl(); tagDienst(); tagAnzeigen();
+  $('t-bem').value = ''; $('t-plan').value = ''; tagWahl = heuteIso(); $('t-datumwahl').value = tagWahl;
+  toast('Timeslot gestartet'); restZeigen(); tagDienst(); tagAnzeigen();
 };
 $('t-stopp').onclick = function () { if (slotStoppen()) { toast('Timeslot beendet'); tagDienst(); } tagAnzeigen(); };
+$('t-slot-neu').onclick = function () {                                // 2.0.15: Timeslot von Hand für den gewählten Tag
+  var d0 = new Date(tagWahl + 'T00:00:00').getTime(), heute = tagWahl === heuteIso();
+  var von = heute ? Math.floor(Date.now() / 60000) * 60000 - 3600000 : d0 + 9 * 3600000;
+  daten.slots.push({ auftrag: selAu || '_UNASSIGNED', position: selPo || '_UNASSIGNED', start: von, ende: von + 3600000, status: 'open', bem: '',
+    planMin: 0, geaendert: jetztStempel(), geloescht: false });
+  sichern(); slotOeffnen(daten.slots.length - 1); slotNeuIdx = slotIdx;
+};
 /** Audit-Tage: Audit starten öffnet einen Slot auf der Audit-Position, Audit beenden schließt ihn */
 function auditSlotStarten() {
   var a = auditById(aktuell.id); if (!a || a.probe) return;
@@ -1619,10 +1740,10 @@ function tagAnzeigen() {
         '<span class="wo">' + esc(wo || '–') + '</span>' +
         '<span class="h">' + (t.status === 'open' ? '' : esc(t.status) + ' · ') + L.stunden(Math.round(slotDauer(t) / 900000) / 4) + ' h</span><span class="pfeil">›</span></div>';
     });
-  $('t-slots').innerHTML = html || '<div class="leise">Keine Timeslots an diesem Tag.</div>';
+  $('t-slots').innerHTML = html || '<div class="leer">Keine Timeslots an diesem Tag.</div>';
 }
 // 2.0.11: Timeslot als eigene Seite statt Dialog
-var slotIdx = -1;
+var slotIdx = -1, slotNeuIdx = -1;
 $('t-slots').addEventListener('click', function (ev) {
   var r = ev.target.closest('.slot'); if (!r) return;
   var s = daten.slots[+r.dataset.i]; if (!s) return;
@@ -1641,9 +1762,12 @@ function slotOeffnen(i) {
   $('sl-park').textContent = s.status === 'parked' ? 'Parken aufheben' : 'Parken';
   zeige('slot');
 }
-function slotZurueck() { slotIdx = -1; tagAuswahl(); tagAnzeigen(); zeige('tag'); }
+function slotZurueck() { slotIdx = -1; slotNeuIdx = -1; tagAuswahl(); tagAnzeigen(); zeige('tag'); }
 $('sl-zurueck').onclick = slotZurueck;
-$('sl-abbrechen').onclick = slotZurueck;
+$('sl-abbrechen').onclick = function () {                              // 2.0.15: neuer, nicht gespeicherter Timeslot entfällt
+  if (slotIdx >= 0 && slotIdx === slotNeuIdx && slotIdx === daten.slots.length - 1) { daten.slots.pop(); sichern(); }
+  slotNeuIdx = -1; slotZurueck();
+};
 $('sl-speichern').onclick = function () {
   var s = daten.slots[slotIdx]; if (!s) { slotZurueck(); return; }
   var d0 = new Date(s.start); d0.setHours(0, 0, 0, 0);
