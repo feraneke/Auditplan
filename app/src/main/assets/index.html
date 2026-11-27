@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   Auditplan – Oberfläche
-  Version: 2.0.12 (2026-11-27)
+  Version: 2.0.13 (2026-11-27)
   Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
   Läuft in der Android-Hülle (window.AndroidBridge) und zum Ausprobieren auch im Browser.
   Versionshistorie:
@@ -63,6 +63,9 @@
     2.0.12 (2026-11-27) Audittag (Befund Frank 2026-11-27): Timeslots im Wählrad je eine Zeile
                        (Zeit · Kapitel · Dokumente; geänderter Plan mit •); Tipp öffnet wie bisher
                        die Seite Kapitel-Dokumente. Zeitplan im Editor ebenfalls einzeilig.
+    2.0.13 (2026-11-27) Editor, Seite Kapitel (Wunsch Frank 2026-11-27): Kopf der Tabelle bleibt
+                       beim Scrollen stehen; zwischen „Kapitel“ und „Reset“ immer Ist/Soll-Stunden
+                       des Audits (gelb bei Abweichung = Lücke oder Überhang).
 -->
 <html lang="de">
 <head>
@@ -106,6 +109,8 @@ label{display:block;font-size:13px;color:var(--leise);margin:8px 0 4px}
 .posten .pfeile{display:flex;gap:2px}
 .posten .pfeile button{padding:4px 7px;font-size:13px}
 .posten.aus .name{color:var(--leise);text-decoration:line-through}
+.ekopf{position:sticky;top:0;z-index:3;background:var(--karte);padding-top:4px}
+.posten.kopfzeile{font-size:12px;color:var(--leise);padding:6px 0 4px}
 .planzeile{display:grid;grid-template-columns:96px minmax(0,1fr) 44px;gap:6px;font-size:14px;padding:3px 0}
 .planzeile span:nth-child(2){white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .planzeile.pause{color:var(--leise);font-style:italic}
@@ -265,7 +270,10 @@ html[data-thema=hell] #toast{background:#2b3540}
     <label>Ausschlüsse / Nichtanwendbarkeiten (Komma)</label><input id="e-excl" type="text">
   </div>
   <div class="karte" id="e-s-kapitel">
-    <div class="reihe"><strong style="flex:3">Kapitel</strong><button id="e-vorschlag" style="flex:1">Reset</button></div>
+    <div class="ekopf">
+      <div class="reihe"><strong style="flex:2">Kapitel</strong><span id="e-gesamt" style="flex:2;text-align:center;font-variant-numeric:tabular-nums"></span><button id="e-vorschlag" style="flex:1">Reset</button></div>
+      <div class="posten kopfzeile"><span>✓</span><span>Kapitel</span><span style="text-align:right">h</span><span>Folge</span></div>
+    </div>
     <div class="leise" id="e-meldung"></div>
     <div id="e-posten"></div>
     <div class="leise" id="e-summe" style="margin-top:8px"></div>
@@ -815,6 +823,7 @@ function planZeigen() {
   edit.plan = z;
   var soll = L.zahl(kopf.auditzeit), ist = z.summe;
   var ende = z.ende ? L.datumText(L.tagDatum(kopf.start, z.ende.tag)) + ' ' + L.uhr(z.ende.min) : '–';
+  $('e-gesamt').innerHTML = '<strong' + (Math.abs(soll - ist) > 0.001 ? ' style="color:var(--warn)"' : '') + '>' + L.stunden(ist) + '</strong> / ' + L.stunden(soll) + ' h';   // 2.0.13
   $('e-summe').innerHTML = 'Soll ' + L.stunden(soll) + ' h · Ist <strong' + (Math.abs(soll - ist) > 0.001 ? ' style="color:var(--warn)"' : '') + '>' + L.stunden(ist) + ' h</strong> · Auditende ' + ende;
   $('e-warn').innerHTML = z.warnungen.map(function (w) { return '<div class="warn">' + esc(w) + '</div>'; }).join('');
   var html = '', tag = 0;

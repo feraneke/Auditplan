@@ -26,7 +26,7 @@
 
   // Ganze Texte (nach Trim verglichen)
   var GANZ = {
-    'Auditplan': 'Audit plan', 'Auditplan entsperren': 'Unlock audit plan', 'Entsperren': 'Unlock', 'Festlegen': 'Set', 'Darstellung': 'Appearance', 'Kopfdaten': 'Header data', 'Dunkel': 'Dark', 'Hell': 'Light', 'Timeslot': 'Time slot',
+    'Auditplan': 'Audit plan', 'Auditplan entsperren': 'Unlock audit plan', 'Entsperren': 'Unlock', 'Festlegen': 'Set', 'Darstellung': 'Appearance', 'Kopfdaten': 'Header data', 'Folge': 'Order', 'h': 'h', '✓': '✓', 'Dunkel': 'Dark', 'Hell': 'Light', 'Timeslot': 'Time slot',
     'Planzeit (min)': 'Planned time (min)', 'Gespeichert': 'Saved', 'hh:mm': 'hh:mm',
     'PIN eingeben': 'Enter PIN', 'PIN wiederholen': 'Repeat PIN', 'PIN ändern': 'Change PIN', 'PIN festlegen': 'Set PIN',
     'Neue PIN': 'New PIN', 'Sperren': 'Lock', 'Einstellungen': 'Settings', '+ Neues Audit': '+ New audit',
