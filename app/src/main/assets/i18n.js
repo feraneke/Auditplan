@@ -1,6 +1,6 @@
 /*
  * Auditplan – Sprache DE/EN
- * Version: 2.0.27 (2026-11-27)
+ * Version: 2.0.28 (2026-11-27)
  * Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
  *
  * Die Oberfläche ist auf Deutsch geschrieben. Bei Sprache EN übersetzt dieses Modul
@@ -30,11 +30,12 @@
  *   2.0.25 (2026-11-27) Rückfrage beim Beenden laufender Timeslots.
  *   2.0.26 (2026-11-27) Audits im Editor und in den Einstellungen.
  *   2.0.27 (2026-11-27) Feld Kunde / Auftrag (AL-01 gestrichen).
+ *   2.0.28 (2026-11-27) Versionsstand (Seite Monat entfällt; Texte bleiben unschädlich).
  */
 (function (global) {
   'use strict';
 
-  var VERSION = '2.0.27';
+  var VERSION = '2.0.28';
   var SCHLUESSEL = 'auditplan.sprache';
 
   // Ganze Texte (nach Trim verglichen)

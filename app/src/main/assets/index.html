@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   Auditplan – Oberfläche
-  Version: 2.0.27 (2026-11-27)
+  Version: 2.0.28 (2026-11-27)
   Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
   Läuft in der Android-Hülle (window.AndroidBridge) und zum Ausprobieren auch im Browser.
   Versionshistorie:
@@ -123,6 +123,10 @@
     2.0.27 (2026-11-27) AL-01 gestrichen (Festlegung Frank 2026-11-27, Frage 11 B, auf eigene Verantwortung): Kunde
                        und Auftrag im Klartext erlaubt; Import ohne Rückfrage nach Kürzel, Editor-Feld „Kunde /
                        Auftrag“, keine Warnung beim Speichern. Auftragsteil nach „/“ wird getrimmt (▶ Audit).
+    2.0.28 (2026-11-27) Seite Monat entfällt (Festlegung Frank 2026-11-27: Tag und Monat über das Datum der
+                       Tagesansicht). Kopf Arbeitstag: Arbeitstag links; rechts von außen 🔒, ⚙, Audits (Editor mit
+                       Liste der Audits). Einstellungen, Abschnitt Audits: nur noch Import .txt. Suche entfällt mit
+                       der Seite Monat.
 -->
 <html lang="de">
 <head>
@@ -268,10 +272,7 @@ html[data-thema=hell] button.gefahr,html[data-thema=hell] .tagbalken.rot{backgro
 html[data-thema=hell] .sperrhinweis{background:#fff1cc;color:#6b4e00}
 html[data-thema=hell] .kd input[type=text]::placeholder{color:#9aa5ae}
 html[data-thema=hell] #toast{background:#2b3540}
-/* 2.0.16: Monatstabelle (Aufbau wie Fahrtenbuch) */
-.msuche{display:flex;align-items:center;gap:8px;margin:0 0 6px}
-.msuche input{flex:1;min-width:0}
-.mgh{display:flex;justify-content:space-between;gap:8px;font-size:13px;color:var(--leise);text-transform:uppercase;margin:16px 4px 6px}
+/* 2.0.16/2.0.28: Tabelle der Tagesansicht (Aufbau wie Fahrtenbuch) */
 .mt{background:var(--karte);border-radius:12px;overflow:hidden}
 .mz{display:grid;grid-template-columns:minmax(0,1fr) 44px 44px 44px 38px 20px;gap:3px;align-items:center;padding:3px 8px;font-size:14px}
 .mz+.mz{border-top:1px solid var(--linie)}
@@ -279,9 +280,6 @@ html[data-thema=hell] #toast{background:#2b3540}
 .mz.kz>:nth-child(2),.mz.kz>:nth-child(3),.mz.kz>:nth-child(4){text-align:center}.mz.kz>:nth-child(5){text-align:right}
 .mz input.pl{color:var(--warn)}
 .mz.kz>:nth-child(3){color:var(--warn)}
-.mtag{display:flex;justify-content:space-between;padding:7px 8px 3px;font-size:12px;font-weight:600;color:var(--akzent);border-top:1px solid var(--leise);cursor:pointer}
-.mtag span{color:var(--leise);font-weight:400}
-.mtag+.mz{border-top:0}
 .mz input{border:0;border-radius:0;background:transparent;padding:6px 0;width:100%;min-width:0;font-variant-numeric:tabular-nums;border-bottom:1px dashed transparent}
 .mz input:focus{outline:none;background:var(--karte2);border-bottom:1px solid var(--akzent)}
 .mz input::placeholder{color:var(--leise);opacity:.75}
@@ -295,11 +293,10 @@ html[data-thema=hell] #toast{background:#2b3540}
 .mz.fest input{color:var(--leise)}
 .mz .wx{display:block;margin:2px 0 0 auto;padding:1px 6px;font-size:13px;line-height:1.3;background:var(--akzent);color:#062a30;border-radius:6px}
 html[data-thema=hell] .mz .wx{color:#fff}
-.kopf .zahnrad{flex:0 0 auto;padding:8px 10px}
+.kopf .zahnrad,.kopf .kopfknopf{flex:0 0 auto;padding:8px 10px}
 .zeile.gewaehlt{outline:2px solid var(--akzent)}
 .mz .ax{display:inline-block;margin:2px 0 4px;padding:2px 10px;font-size:12px;background:var(--akzent);color:#062a30;border-radius:6px;font-weight:600}
 html[data-thema=hell] .mz .ax{color:#fff}
-#s-tag .kopf button{padding:8px 10px}
 .sperrhinweis{background:#3a2f12;color:#ffe3a3;border-radius:10px;padding:8px 10px;font-size:13px;margin:6px 0}
 </style>
 </head>
@@ -396,7 +393,7 @@ html[data-thema=hell] .mz .ax{color:#fff}
 
 <!-- ================= Arbeitstag ================= -->
 <div class="screen" id="s-tag">
-  <div class="kopf"><button id="t-zurueck">Monat</button><h1>Arbeitstag</h1></div>
+  <div class="kopf"><h1>Arbeitstag</h1><button id="t-audits" class="kopfknopf">Audits</button></div>
   <div class="uhren">
     <div class="zifferblatt"><svg id="t-uhr" viewBox="0 0 200 200"></svg>
       <div class="unter"><strong id="t-digital">--:--</strong> · <span id="t-datum"></span></div></div>
@@ -408,16 +405,7 @@ html[data-thema=hell] .mz .ax{color:#fff}
   </div>
   <div id="t-slots"></div>
   <div class="leise" style="margin:6px 2px 0">Graue Werte sind Vorschläge – Antippen übernimmt sie. In der letzten Zeile entsteht ein neuer Timeslot, sobald Auftrag und Beginn eingetragen sind und du die Zeile verlässt; Ende leer = läuft. ⇄ wechselt, › öffnet den Timeslot. Buchen und Ignorieren nur am PC.</div>
-  <datalist id="dl-auftrag"></datalist>
-</div>
-
-<!-- ================= Monat (2.0.16, Task 400-02) ================= -->
-<div class="screen" id="s-monat">
-  <div class="kopf"><button id="m-zurueck">←</button><h1>Arbeitstag</h1><button id="m-heute">Heute ›</button></div>
-  <div class="msuche"><input id="m-suche" type="search" placeholder="Suchen: Auftrag, Position, Bemerkung" autocomplete="off"><span class="leise" id="m-treffer"></span></div>
-  <div id="m-tabelle"></div>
-  <div class="leise" style="margin:8px 2px 0">Graue Werte sind Vorschläge – Antippen übernimmt sie. In der letzten Zeile von heute entsteht ein neuer Timeslot, sobald Auftrag und Beginn eingetragen sind und du die Zeile verlässt; Ende leer = läuft. ⇄ wechselt, Tipp auf den Tag öffnet die Tagesansicht mit den Uhren, › den Timeslot.</div>
-  <datalist id="dl-mpos"></datalist>
+  <datalist id="dl-auftrag"></datalist><datalist id="dl-mpos"></datalist>
 </div>
 
 <!-- ================= Timeslot (2.0.11) ================= -->
@@ -490,7 +478,7 @@ html[data-thema=hell] .mz .ax{color:#fff}
   </div>
   <div class="karte">
     <strong>Audits</strong>
-    <div class="knopfreihe"><button class="haupt" id="b-audits">Audits bearbeiten</button><button id="b-import">Import .txt</button></div>
+    <div class="knopfreihe"><button id="b-import">Import .txt</button></div>
     <input type="file" id="f-import" accept=".txt,text/plain" style="display:none">
     <div class="leise" style="margin-top:8px">Import: Arbeitsstand der 400.dotm (Auditzeiten.txt).</div>
   </div>
@@ -527,7 +515,7 @@ html[data-thema=hell] .mz .ax{color:#fff}
 var L = window.Logik, AP = window.Apdat;
 var BR = window.AndroidBridge || null;
 var ALT = 'auditplan.daten', TRESOR = 'auditplan.tresor', SPERRE = 'auditplan.sperre';
-var OBERFLAECHE = '2.0.27';                                           // 2.0.16: Version dieser Datei, angezeigt in den Einstellungen
+var OBERFLAECHE = '2.0.28';                                           // 2.0.16: Version dieser Datei, angezeigt in den Einstellungen
 
 // ---------------------------------------------------------------- Grundfunktionen
 function $(id) { return document.getElementById(id); }
@@ -660,7 +648,7 @@ function zuLange() { return daten && versteckt && Date.now() - versteckt > (+dat
 // ---------------------------------------------------------------- Navigation
 var ansicht = '';
 function zeigeRoh(n) {
-  ['pin', 'edit', 'audit', 'doku', 'einst', 'kdok', 'tag', 'slot', 'monat'].forEach(function (x) { $('s-' + x).classList.toggle('an', x === n); });
+  ['pin', 'edit', 'audit', 'doku', 'einst', 'kdok', 'tag', 'slot'].forEach(function (x) { $('s-' + x).classList.toggle('an', x === n); });
   ansicht = n; window.scrollTo(0, 0);
 }
 function zeige(n) {
@@ -675,8 +663,7 @@ function zeige(n) {
 function zurueck() {
   if (dlgOffen()) { dlgZu(); return true; }
   if (ansicht === 'tag' || ansicht === 'pin') return false;          // 2.0.23: Arbeitstag ist die Startseite
-  if (ansicht === 'monat') { tagZeigen(); return true; }
-  if (ansicht === 'audit') { if (auditVon === 'monat') monatZeigen(); else if (auditVon === 'edit') zeige('edit'); else tagZeigen(); return true; }
+  if (ansicht === 'audit') { if (auditVon === 'edit') zeige('edit'); else tagZeigen(); return true; }
   if (ansicht === 'edit' && !edit.vonAudit) { if (editVon === 'einst') einstSeite(); else tagZeigen(); return true; }   // 2.0.26
   if (ansicht === 'edit' && edit.vonAudit) { oeffneAudit(edit.vonAudit); return true; }
   if (ansicht === 'kdok') { kdokZurueck(); return true; }
@@ -695,7 +682,6 @@ function appWiederDa() {
   versteckt = 0;
   if (ansicht === 'audit') auditAnzeigen(true);
   if (ansicht === 'tag') tagAnzeigen();
-  if (ansicht === 'monat') monatAnzeigen();
 }
 function einstSeite() { einstZeigen(); zeige('einst'); }
 $('n-zurueck').onclick = function () { einstZurueck(); };
@@ -770,7 +756,7 @@ $('liste').addEventListener('click', function (ev) {
   }
 });
 var editVon = 'tag';                                                 // 2.0.26: Rückweg aus dem Editor
-$('b-audits').onclick = function () { editVon = 'einst'; listeZeichnen(); neuesAudit(); };
+$('t-audits').onclick = function () { editVon = 'tag'; listeZeichnen(); neuesAudit(); };   // 2.0.28: Knopf Audits im Kopf des Arbeitstags
 $('b-neu').onclick = function () { neuesAudit(); };
 $('b-import').onclick = function () { $('f-import').value = ''; $('f-import').click(); };
 $('f-import').onchange = function () {
@@ -1584,7 +1570,6 @@ function tagOeffnen() {
   monatNeu = { tag: '', au: '', po: '', von: '', bis: '' }; tagSig = '';   // 2.0.19
   tagAnzeigen(); zeige('tag');
 }
-$('t-zurueck').onclick = function () { monatZeigen(); };         // 2.0.16
 $('t-datumwahl').onchange = function () { tagWahl = this.value || heuteIso(); tagAnzeigen(); };
 function orderVon(au) { return daten.orders.filter(function (o) { return o.auftrag === au && !o.geloescht; })[0] || null; }
 function posVon(au, po) { return daten.pos.filter(function (x) { return x.auftrag === au && x.position === po && !x.geloescht; })[0] || null; }
@@ -1672,7 +1657,6 @@ function slotOeffnen(i) {
 }
 function slotZurueck() {
   slotIdx = -1; slotNeuIdx = -1;
-  if (slotVon === 'monat') { slotVon = 'tag'; monatZeigen(); return; }   // 2.0.16: zurück zur Monatstabelle
   tagTabelle(); tagAnzeigen(); zeige('tag');
 }
 $('sl-zurueck').onclick = slotZurueck;
@@ -1717,30 +1701,16 @@ $('sl-del').onclick = function () {
 // ---------------------------------------------------------------- Monat (2.0.16, Task 400-02)
 // Aufbau wie Fahrtenbuch: Tabelle je Monat, eine Zeile je Timeslot, Eingabe direkt in der Zeile.
 // Graue Werte sind Vorschläge (placeholder + data-v); Antippen übernimmt sie.
-var MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
-var WTK = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
-var monatQ = '', slotVon = 'tag', monatRefokus = false;
-var monatNeu = { tag: '', au: '', po: '', von: '', bis: '' };          // Eingaben der Vorschlagszeile (bleiben beim Neuzeichnen)
-function monatOeffnen() {
-  monatQ = ''; $('m-suche').value = ''; monatNeu = { tag: '', au: '', po: '', von: '', bis: '' };
-  monatZeigen();
-}
-function monatZeigen() { monatAnzeigen(); zeige('monat'); }
+var slotVon = 'tag', monatRefokus = false;
 var auditVon = 'tag';                                              // 2.0.23: Rückweg aus der Audit-Ansicht
 /** Tagesansicht mit dem gewählten Tag wieder zeigen */
 function tagZeigen() { tagSig = ''; tagAnzeigen(); zeige('tag'); }
-/** neuestes Audit zu einem Auftrag (Teil nach „/“ im Audit-Kürzel) */
+/** neuestes Audit zu einem Auftrag (Teil nach „/“ in „Kunde / Auftrag“) */
 function auditZumAuftrag(au) {
   return daten.audits.filter(function (a) { return !a.geloescht && !a.probe && (String(a.name || '').split('/')[1] || '').trim() === au; })
     .sort(function (a, b) { return (b.kopf.start || '').localeCompare(a.kopf.start || ''); })[0] || null;
 }
-function tagOeffnenAm(iso) {
-  tagOeffnen();
-  if (iso && iso !== tagWahl) { tagWahl = iso; $('t-datumwahl').value = iso; tagAnzeigen(); }
-}
-$('m-zurueck').onclick = function () { tagZeigen(); };            // 2.0.23: zurück zur Tagesansicht
-$('m-heute').onclick = function () { tagOeffnen(); };
-$('m-suche').addEventListener('input', function () { monatQ = this.value; monatAnzeigen(); });
+var monatNeu = { tag: '', au: '', po: '', von: '', bis: '' };          // Eingaben der Vorschlagszeile (bleiben beim Neuzeichnen)
 /** Uhrzeit wie im Fahrtenbuch: 8 / 830 / 8.30 / 8:30 -> Minuten; '' -> null; ungültig -> -1 */
 function zeitEingabe(v) {
   v = String(v || '').trim(); if (!v) return null;
@@ -1755,7 +1725,6 @@ function tagEingabe(v) {
   var d = new Date(m[3] ? +m[3] : new Date().getFullYear(), +m[2] - 1, +m[1]);
   return d.getDate() === +m[1] ? isoVon(d.getTime()) : '';
 }
-function tagKurz(iso) { var d = new Date(iso + 'T00:00:00'); return WTK[d.getDay()] + ' ' + L.pad(d.getDate()) + '.'; }
 function ttmm(iso) { var d = new Date(iso + 'T00:00:00'); return L.pad(d.getDate()) + '.' + L.pad(d.getMonth() + 1) + '.'; }
 function hmDauer(ms) { var m = Math.max(0, Math.floor(ms / 60000 + 1e-6));   // 2.0.18: abrunden wie die Uhr (09:43-09:48 = 0:05)
   return Math.floor(m / 60) + ':' + L.pad(m % 60); }
@@ -1787,10 +1756,9 @@ function vorschlagsZeile(iso) {
     (laeuft ? feld('bis', n.bis, '', 'z', ' placeholder="läuft"') : heute ? feld('bis', n.bis, hm(Date.now()), 'z') : feld('bis', n.bis, '', 'z', ' placeholder="hh:mm"')) +
     '<span class="du"></span><span class="pf"></span></div>';
 }
-function zeileHtml(x, tage, neu, tagkopf) {                         // 2.0.22: Tag als Überschrift statt eigener Spalte (Wunsch Frank)
+function zeileHtml(x) {                                              // eine Zeile je Timeslot (2.0.28: ohne Tagesüberschrift)
   var s = x.s, fest = s.status === 'booked' || s.status === 'ignored', ro = fest ? ' readonly' : '';
-  return (neu && tagkopf ? '<div class="mtag" data-tag="' + x.iso + '">' + tagKurz(x.iso) + ttmm(x.iso).slice(3) + '<span>' + hmDauer(tage[x.iso]) + ' h</span></div>' : '') +
-    '<div class="mz' + (s.ende ? '' : ' laeuft') + (fest ? ' fest' : '') + '" data-z="' + x.i + '">' +
+  return '<div class="mz' + (s.ende ? '' : ' laeuft') + (fest ? ' fest' : '') + '" data-z="' + x.i + '">' +
     '<span class="au">' + feld('au', ohneLeer(s.auftrag), '', 'a', ' list="dl-auftrag"' + ro) + feld('po', ohneLeer(s.position), '', 'p', ' list="dl-mpos"' + ro) +
     (s.position === daten.einst.auditPos && auditZumAuftrag(s.auftrag) ? '<button class="ax" data-ax="' + auditZumAuftrag(s.auftrag).id + '">▶ Audit</button>' : '') + '</span>' +   // 2.0.23
     feld('von', hm(s.start), '', 'z', ro) +
@@ -1815,43 +1783,11 @@ function tabelleZeichnen(ziel, tagIso) {
   if (!daten) return;
   var ae = document.activeElement, fokus = null;                     // Fokus merken, damit das Neuzeichnen die Eingabe nicht unterbricht
   if (ae && ae.dataset && ae.dataset.f && ziel.contains(ae)) { var z0 = ae.closest('.mz'); fokus = { z: z0.dataset.z, f: ae.dataset.f, a: ae.selectionStart, e: ae.selectionEnd }; }
-  var q = tagIso ? '' : monatQ.trim().toLowerCase(), heute = heuteIso();
-  var L1 = daten.slots.map(function (s, i) { return { s: s, i: i, iso: isoVon(s.start) }; }).filter(function (x) {
-    if (x.s.geloescht) return false;
-    if (tagIso) return x.iso === tagIso;
-    if (!q) return true;
-    return [x.s.auftrag, x.s.position, x.s.bem, x.s.status, ttmm(x.iso)].join(' ').toLowerCase().indexOf(q) >= 0;
-  });
+  var L1 = daten.slots.map(function (s, i) { return { s: s, i: i, iso: isoVon(s.start) }; }).filter(function (x) { return !x.s.geloescht && x.iso === tagIso; });
   L1.sort(function (a, b) { return a.iso < b.iso ? 1 : a.iso > b.iso ? -1 : a.s.start - b.s.start; });   // neueste Tage oben, im Tag nach Zeit
-  var tage = {};
-  L1.forEach(function (x) { tage[x.iso] = (tage[x.iso] || 0) + (x.s.status !== 'ignored' ? slotDauer(x.s) : 0); });
-  var html = '';
-  if (tagIso) {                                                       // Tagesansicht: eine Tabelle, oben die Vorschlagszeile
-    var vt = '';
-    html = '<div class="mt">' + KOPFZEILE;
-    L1.forEach(function (x) { html += zeileHtml(x, tage, x.iso !== vt, false); vt = x.iso; });
-    html += vorschlagsZeile(tagIso) + '</div>';                       // 2.0.24: leere Zeile am Ende des Tages
-  } else {
-    var gruppen = [], cur = null, mon = heute.slice(0, 7);
-    if (!q) { cur = { k: mon, items: [] }; gruppen.push(cur); }                                    // aktueller Monat immer (Vorschlagszeile)
-    L1.forEach(function (x) { var k = x.iso.slice(0, 7); if (!cur || cur.k !== k) { cur = gruppen.filter(function (g) { return g.k === k; })[0]; if (!cur) { cur = { k: k, items: [] }; gruppen.push(cur); } } cur.items.push(x); });
-    gruppen.forEach(function (g) {
-      var sum = 0, nt = {};
-      g.items.forEach(function (x) { if (x.s.status !== 'ignored') sum += slotDauer(x.s); nt[x.iso] = 1; });
-      html += '<div class="mgh"><span>' + MONATE[+g.k.slice(5, 7) - 1] + ' ' + g.k.slice(0, 4) + '</span><span>' + Object.keys(nt).length + ' T · ' + hmDauer(sum) + ' h</span></div>' +
-        '<div class="mt">' + KOPFZEILE;
-      var mitLeer = !q && g.k === mon, vorTag = '';
-      if (mitLeer && !g.items.some(function (x) { return x.iso === heute; }))    // heute noch ohne Timeslot: Überschrift + leere Zeile
-        html += '<div class="mtag" data-tag="' + heute + '">' + tagKurz(heute) + ttmm(heute).slice(3) + '<span>0:00 h</span></div>' + vorschlagsZeile(heute);
-      g.items.forEach(function (x, k) {
-        html += zeileHtml(x, tage, x.iso !== vorTag, true); vorTag = x.iso;
-        if (mitLeer && x.iso === heute && (k === g.items.length - 1 || g.items[k + 1].iso !== heute)) html += vorschlagsZeile(heute);   // 2.0.24
-      });
-      if (!g.items.length && !(!q && g.k === mon)) html += '<div class="mz"><span class="leise">Keine Timeslots.</span></div>';
-      html += '</div>';
-    });
-    $('m-treffer').textContent = q ? L1.length + ' Treffer' : '';
-  }
+  var html = '<div class="mt">' + KOPFZEILE;
+  L1.forEach(function (x) { html += zeileHtml(x); });
+  html += vorschlagsZeile(tagIso) + '</div>';                         // 2.0.24: leere Zeile am Ende des Tages
   ziel.innerHTML = html || '<div class="karte leise">Keine Treffer.</div>';
   // Auswahllisten: Aufträge wie in der Tagesansicht, Positionen aller Aufträge
   var a = auftraege();
@@ -1865,7 +1801,6 @@ function tabelleZeichnen(ziel, tagIso) {
     if (el) { monatRefokus = true; el.focus(); try { el.setSelectionRange(fokus.a, fokus.e); } catch (e) { } monatRefokus = false; }
   }
 }
-function monatAnzeigen() { tabelleZeichnen($('m-tabelle'), null); }
 var tagSig = '';
 function tagTabelle() { tabelleZeichnen($('t-slots'), tagWahl); tagSig = tagSignatur(); }
 /** Kennung des Tagesstands: Tabelle der Tagesansicht nur neu zeichnen, wenn sich etwas geändert hat (nicht im Sekundentakt) */
@@ -1874,8 +1809,8 @@ function tagSignatur() {
     .map(function (s) { return s.auftrag + s.position + s.start + '-' + s.ende + s.status + 'p' + (s.planMin || 0); }).join(';');
 }
 /** die sichtbare Tabelle neu zeichnen (Tagesansicht oder Monat) */
-function tabelleNeu() { if (ansicht === 'tag') tagTabelle(); else monatAnzeigen(); }
-function tabelleAktiv() { return ansicht === 'tag' ? $('t-slots') : $('m-tabelle'); }
+function tabelleNeu() { tagTabelle(); }
+function tabelleAktiv() { return $('t-slots'); }
 /** 2.0.18: Wechsel aus der Tabelle - laufenden Timeslot jetzt beenden, Ende als Beginn in die oberste Zeile */
 function monatWechsel(i) {
   var s = daten.slots[i]; if (!s || s.ende) return;
@@ -1999,21 +1934,18 @@ function tabelleEreignisse(t) {
     zeileSpeichern(z);
   });
   t.addEventListener('click', function (ev) {
-    var g = ev.target.closest('.mtag[data-tag]');
-    if (g) { tagOeffnenAm(g.dataset.tag); return; }
     var w = ev.target.closest('.wx[data-wx]');
     if (w) { monatWechsel(+w.dataset.wx); return; }
     var ax = ev.target.closest('.ax[data-ax]');                         // 2.0.23: Audit als Arbeitspunkt
-    if (ax) { auditVon = t.id === 'm-tabelle' ? 'monat' : 'tag'; oeffneAudit(ax.dataset.ax); return; }
+    if (ax) { auditVon = 'tag'; oeffneAudit(ax.dataset.ax); return; }
     var p = ev.target.closest('.pf[data-i]');
     if (p) {
       var s = daten.slots[+p.dataset.i]; if (!s) return;
       if (s.status === 'booked' || s.status === 'ignored') { toast('Gebucht bzw. ignoriert – nur am PC änderbar'); return; }
-      slotVon = t.id === 'm-tabelle' ? 'monat' : 'tag'; slotOeffnen(+p.dataset.i);
+      slotVon = 'tag'; slotOeffnen(+p.dataset.i);
     }
   });
 }
-tabelleEreignisse($('m-tabelle'));
 tabelleEreignisse($('t-slots'));
 
 // ---------------------------------------------------------------- Uhrzeitfelder und Einstellungen (2.0.17)
@@ -2031,21 +1963,22 @@ function uhrNormal(ev) {                                             // beim Ver
 document.addEventListener('change', uhrNormal, true);                // Capture: vor den Handlern der Seite
 document.addEventListener('focusout', uhrNormal, true);
 var einstVon = '';
-['edit', 'audit', 'kdok', 'tag', 'monat', 'slot', 'einst', 'doku'].forEach(function (n) {
-  var k = $('s-' + n).querySelector('.kopf'), z = document.createElement('button');   // 2.0.26: 🔒 auf jeder Seite (Festlegung Frank)
+['edit', 'audit', 'kdok', 'tag', 'slot', 'einst', 'doku'].forEach(function (n) {   // 2.0.28: von rechts 🔒, ⚙, (Audits)
+  var k = $('s-' + n).querySelector('.kopf');
+  if (n !== 'einst' && n !== 'doku') {
+    var b = document.createElement('button');
+    b.className = 'zahnrad'; b.title = 'Einstellungen'; b.textContent = '⚙';
+    b.onclick = function () { einstVon = ansicht; einstSeite(); };
+    k.appendChild(b);
+  }
+  var z = document.createElement('button');                          // 2.0.26: 🔒 auf jeder Seite (Festlegung Frank)
   z.className = 'zahnrad schloss'; z.title = 'Sperren'; z.textContent = '🔒'; z.onclick = sperren;
   k.appendChild(z);
-  if (n === 'einst' || n === 'doku') return;
-  var b = document.createElement('button');
-  b.className = 'zahnrad'; b.title = 'Einstellungen'; b.textContent = '⚙';
-  b.onclick = function () { einstVon = ansicht; einstSeite(); };
-  k.appendChild(b);
 });
 function einstZurueck() {
   var n = einstVon; einstVon = '';
   if (n === 'audit' && aktuell.id && auditById(aktuell.id)) { oeffneAudit(aktuell.id); return; }
   if (n === 'tag') { tagTabelle(); tagAnzeigen(); zeige('tag'); return; }
-  if (n === 'monat') { monatZeigen(); return; }
   if (n === 'edit' || n === 'kdok' || n === 'slot') { zeige(n); return; }
   tagZeigen();
 }
@@ -2202,7 +2135,7 @@ setInterval(function () {
   browserTakt();
   if (ansicht === 'audit') auditAnzeigen(false);
   if (ansicht === 'tag' && Date.now() % 1000 < 260) tagAnzeigen();
-  if (ansicht === 'monat' && Date.now() % 1000 < 260) monatTakt();
+  if (ansicht === 'tag' && Date.now() % 1000 < 260) monatTakt();     // 2.0.28: Dauer laufender Timeslots
 }, 250);
 function entsperrt() {
   einstZeigen();
