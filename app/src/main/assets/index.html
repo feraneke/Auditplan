@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   Auditplan – Oberfläche
-  Version: 2.0.8 (2026-11-27)
+  Version: 2.0.9 (2026-11-27)
   Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
   Läuft in der Android-Hülle (window.AndroidBridge) und zum Ausprobieren auch im Browser.
   Versionshistorie:
@@ -48,6 +48,9 @@
                        und Vibration an/aus für alle Signalregeln; wirkt sofort auf einen
                        laufenden Audit- bzw. Arbeitstag-Dienst. Ton aus = Ton "aus" an die Hülle
                        (Ton.java 2.0.8 spielt dann nichts).
+    2.0.9 (2026-11-27) Sprache DE/EN (Wunsch Frank 2026-11-27): Umschalter oben in den
+                       Einstellungen; Übersetzung aller sichtbaren Texte und Meldungen über das
+                       neue Modul i18n.js; Wahl bleibt auf dem Gerät (auch für die PIN-Seite).
 -->
 <html lang="de">
 <head>
@@ -313,6 +316,10 @@ textarea{min-height:110px}
 <div class="screen" id="s-einst">
   <div class="kopf"><button id="n-zurueck">←</button><h1>Einstellungen</h1></div>
   <div class="karte">
+    <div class="reihe"><strong style="flex:2">Sprache</strong>
+      <button id="n-de" style="flex:1">DE</button><button id="n-en" style="flex:1">EN</button></div>
+  </div>
+  <div class="karte">
     <strong>Signale</strong>
     <div class="reihe" style="margin-top:10px;gap:18px">
       <label style="display:flex;gap:8px;align-items:center;margin:0;color:var(--text)"><input type="checkbox" id="n-ton"> Ton an</label>
@@ -375,6 +382,7 @@ textarea{min-height:110px}
 <div id="toast"></div>
 <script src="logik.js"></script>
 <script src="apdat.js"></script>
+<script src="i18n.js"></script>
 <script>
 'use strict';
 var L = window.Logik, AP = window.Apdat;
@@ -1232,6 +1240,7 @@ function browserTakt() {
 // ---------------------------------------------------------------- Einstellungen und Signalregeln (A2)
 function einstZeigen() {
   var e = daten.einst;
+  spracheKnoepfe();                                                     // 2.0.9
   $('n-ton').checked = !e.tonAus; $('n-vib').checked = !e.vibAus;      // 2.0.8
   $('a-schirm').checked = !!e.schirm; $('n-sperre').value = e.sperreMin; $('n-rad').value = e.radSek;
   $('n-auditpos').value = e.auditPos; $('n-soll').value = L.stunden(+e.sollTag);
@@ -1248,6 +1257,13 @@ function einstZeigen() {
 }
 function einstSetzen(k, v) { daten.einst[k] = v; daten.einstStempel[k] = jetztStempel(); sichern(); }
 $('a-schirm').onchange = function () { einstSetzen('schirm', this.checked); };
+/** 2.0.9: Sprache DE/EN */
+function spracheKnoepfe() {
+  var en = I18N.sprache() === 'en';
+  $('n-de').className = en ? '' : 'haupt'; $('n-en').className = en ? 'haupt' : '';
+}
+$('n-de').onclick = function () { I18N.setzen('de'); spracheKnoepfe(); toast('Deutsch'); };
+$('n-en').onclick = function () { I18N.setzen('en'); spracheKnoepfe(); toast('English'); };
 $('n-ton').onchange = function () { einstSetzen('tonAus', !this.checked); dienstNeuPlanen(); toast(this.checked ? 'Ton an' : 'Ton aus'); };
 $('n-vib').onchange = function () { einstSetzen('vibAus', !this.checked); dienstNeuPlanen(); toast(this.checked ? 'Vibration an' : 'Vibration aus'); };
 $('n-sperre').onchange = function () { var v = Math.max(1, Math.round(L.zahl(this.value)) || 15); einstSetzen('sperreMin', v); this.value = v; };
