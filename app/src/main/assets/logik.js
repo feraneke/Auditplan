@@ -1,6 +1,6 @@
 /*
  * Auditplan – Logik (ohne Oberfläche)
- * Version: 2.0.0 (2026-11-26)
+ * Version: 2.0.6 (2026-11-27)
  * Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
  *
  * Inhalt:
@@ -20,11 +20,14 @@
  *                      marken), Vorgaben je Unterpunkt (VORGABEN, NORM, unterpunkteVon,
  *                      kapitelVon), Abweichungen (ablaufIst, abwPruefen). ereignisse() nimmt
  *                      statt der Optionen die Regelliste; alter Aufruf mit Optionen bleibt möglich.
+ *   2.0.6 (2026-11-27) ereignisseArbeitstag mit Planzeit (4. Parameter, ms): Prozent- und
+ *                      Minuten-vor-Ende-Regeln (Audit und Arbeitstag) gelten für Arbeitstag-
+ *                      Slots mit Planzeit (Entscheidung 5, Doc Format v3). Ohne Planzeit wie 2.0.0.
  */
 (function (global) {
   'use strict';
 
-  var VERSION = '2.0.0';
+  var VERSION = '2.0.6';
 
   // ---------------------------------------------------------------------------
   // Kapitel P11F040: Kürzel | Art | Gewicht | ÜA mit 7.3 | ÜA ohne 7.3 | Höchstwert
@@ -689,7 +692,7 @@
     return vorrangFiltern(ev).filter(function (e) { return e.t > (ab || 0); });
   }
   /** Ereignisse Arbeitstag: Intervall- und Nach-Beginn-Regeln ab Slotbeginn bis Tagesende */
-  function ereignisseArbeitstag(regeln, slotBeginn, ab) {
+  function ereignisseArbeitstag(regeln, slotBeginn, ab, planMs) {
     var aktiv = (regeln || []).filter(function (r) { return r.aktiv && !r.geloescht && r.gilt === 'ARBEITSTAG'; });
     var d0 = new Date(slotBeginn); d0.setHours(0, 0, 0, 0);
     var tagEnde = d0.getTime() + 86400000 - 60000, ev = [];
@@ -702,6 +705,14 @@
         }
       } else if (r.ausl === 'NACH_BEGINN') ev.push(ereignisAus(r, slotBeginn + w * 60000, w + ' min im Slot'));
     });
+    if (planMs > 0) {                                                   // 2.0.6: Gongs bezogen auf die Planzeit
+      (regeln || []).forEach(function (r) {
+        if (!r.aktiv || r.geloescht) return;
+        var w = +r.wert; if (!(w > 0)) return;
+        if (r.ausl === 'PROZENT' && w <= 100) ev.push(ereignisAus(r, slotBeginn + Math.round(planMs * w / 100), w + ' % der Planzeit'));
+        else if (r.ausl === 'VOR_ENDE' && w * 60000 < planMs) ev.push(ereignisAus(r, slotBeginn + planMs - w * 60000, w + ' min vor Planende'));
+      });
+    }
     return vorrangFiltern(ev).filter(function (e) { return e.t > (ab || 0); });
   }
   /** Marken auf Uhr und Timer: Anteile 0..1 der Timeslot-Dauer für Prozent- und Minutenregeln */
