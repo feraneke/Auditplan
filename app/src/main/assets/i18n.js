@@ -1,6 +1,6 @@
 /*
  * Auditplan – Sprache DE/EN
- * Version: 2.0.9 (2026-11-27)
+ * Version: 2.0.10 (2026-11-27)
  * Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
  *
  * Die Oberfläche ist auf Deutsch geschrieben. Bei Sprache EN übersetzt dieses Modul
@@ -15,11 +15,12 @@
  *
  * Versionshistorie:
  *   2.0.9 (2026-11-27) Erste Fassung (Wunsch Frank 2026-11-27, Chat 400_App_003).
+ *   2.0.10 (2026-11-27) Englische Begriffe wie im TimeKeeper am PC: Order, Position, remarks, time slot.
  */
 (function (global) {
   'use strict';
 
-  var VERSION = '2.0.9';
+  var VERSION = '2.0.10';
   var SCHLUESSEL = 'auditplan.sprache';
 
   // Ganze Texte (nach Trim verglichen)
@@ -30,7 +31,7 @@
     'Neues Audit': 'New audit', 'Import .txt': 'Import .txt', 'Arbeitstag': 'Work day', 'Abbrechen': 'Cancel',
     'Speichern': 'Save', 'Übernehmen': 'Apply', 'Löschen': 'Delete', 'Teilen': 'Share', 'Reset': 'Reset',
     'Start': 'Start', 'Stopp': 'Stop', 'Wechsel': 'Switch', 'Heute': 'Today', 'Jetzt': 'Now', 'Kapitel': 'Chapter',
-    'Auftrag': 'Order', 'Aufgabe': 'Task', 'Bemerkung': 'Remark', 'Beginn': 'Start', 'Ende': 'End',
+    'Auftrag': 'Order', 'Position': 'Position', 'Bemerkung': 'remarks', 'Beginn': 'Start', 'Ende': 'End',
     'Zeitplan': 'Schedule', 'Kein Zeitplan': 'No schedule', 'Startzeit': 'Start time', 'Auditstart': 'Audit start',
     'Audittyp': 'Audit type', 'Auditzeit (h)': 'Audit time (h)', 'Tagesbeginn': 'Day start', 'Tagesende': 'Day end',
     'Mittagspause (h)': 'Lunch break (h)', '7.3 ausgeschlossen': '7.3 excluded',
@@ -49,7 +50,7 @@
     'Erwartete Dokumente': 'Expected documents', 'Vorgaben je Unterpunkt bearbeiten': 'Edit defaults per sub-clause',
     'Datenaustausch mit dem PC': 'Data exchange with the PC', 'Export .apdat': 'Export .apdat', 'Import .apdat': 'Import .apdat',
     'Probelauf': 'Trial run', 'Probelauf starten': 'Start trial run', 'Probe A': 'Trial A', 'Probe B': 'Trial B', 'Probe C': 'Trial C',
-    'Auswahl: dieses Kapitel': 'Selection: this chapter', 'alle Kapitel': 'all chapters', 'kein Slot': 'no slot',
+    'Auswahl: dieses Kapitel': 'Selection: this chapter', 'alle Kapitel': 'all chapters', 'kein Timeslot': 'no time slot',
     'tippen oder wählen': 'type or choose', 'z. B. 90': 'e.g. 90', 'Planzeit (min, leer = ohne Countdown)': 'Planned time (min, empty = no countdown)',
     'läuft': 'running', 'offen': 'open', 'erledigt': 'done', 'früher': 'earlier', 'verlängert': 'extended',
     'nächstes gekürzt': 'next shortened', 'ohne Auftrag': 'no order', 'in Arbeit': 'in progress',
@@ -118,7 +119,7 @@
     ['Hauptschalter für alle Signalregeln; gilt sofort, auch während eines Audits oder Arbeitstags.', 'Master switch for all signal rules; applies immediately, also during an audit or work day.'],
     ['Import: Arbeitsstand der 400.dotm (Auditzeiten.txt). Tippen = öffnen, ⋮ = bearbeiten, exportieren, löschen.', 'Import: working state of the 400.dotm (Auditzeiten.txt). Tap = open, ⋮ = edit, export, delete.'],
     ['Tipp auf eine Zeile öffnet die erwarteten Dokumente. Rot = über das Tagesende hinaus.', 'Tap a row to open the expected documents. Red = beyond the end of the day.'],
-    ['Tipp auf einen Slot: ändern, teilen, parken, löschen. Buchen und Ignorieren nur am PC.', 'Tap a slot: change, split, park, delete. Booking and ignoring only on the PC.'],
+    ['Tipp auf einen Timeslot: ändern, teilen, parken, löschen. Buchen und Ignorieren nur am PC.', 'Tap a time slot: change, split, park, delete. Booking and ignoring only on the PC.'],
     ['Mindestens 6 Ziffern. PIN vergessen = Daten verloren; sichern über Export .apdat.', 'At least 6 digits. Forgotten PIN = data lost; back up via Export .apdat.'],
     ['Probelauf: Intervalle alle 2 min, Prozent-Signale je Kapitel. Mit „Audit starten“ beginnen.', 'Trial run: intervals every 2 min, percentage signals per chapter. Begin with “Start audit”.'],
     ['Für dieses Audit sind Abweichungen vom Plan erfasst. Sie gelten nach dem Bearbeiten weiter für die Timeslots mit gleicher Nummer. Fortfahren?', 'Deviations from the plan are recorded for this audit. After editing they keep applying to the timeslots with the same number. Continue?'],
@@ -147,11 +148,11 @@
     ['Der Probelauf lässt sich nicht bearbeiten.', 'The trial run cannot be edited.'],
     ['Audit-Dienst ließ sich nicht starten', 'Audit service could not be started'],
     ['Keine Töne mehr in diesem Audit.', 'No more signals in this audit.'],
-    ['Teilungszeit liegt nicht im Slot', 'Split time is not within the slot'],
+    ['Teilungszeit liegt nicht im Timeslot', 'Split time is not within the time slot'],
     ['Die Datei stammt von diesem Handy.', 'The file comes from this phone.'],
     ['Bitte den Auditstart eintragen.', 'Please enter the audit start.'],
     ['Planzeit in Minuten, z. B. 90', 'Planned time in minutes, e.g. 90'],
-    ['Keine Slots an diesem Tag.', 'No slots on this day.'],
+    ['Keine Timeslots an diesem Tag.', 'No time slots on this day.'],
     ['Keine Datei übernommen', 'No file applied'], ['Kein laufendes Kapitel', 'No running chapter'],
     ['Kein Kapitel mit Zeit.', 'No chapter with time.'], ['Speichern fehlgeschlagen', 'Saving failed'],
     ['Export fehlgeschlagen: ', 'Export failed: '], ['Teilen fehlgeschlagen: ', 'Sharing failed: '],
@@ -166,7 +167,7 @@
     ['Arbeitstag · ', 'Work day · '], ['Probelauf · ', 'Trial run · '], ['Dieses Audit hat ', 'This audit has '], ['Die Datei wurde ', 'The file was '],
     ['Audit läuft – ', 'Audit running – '], [' Töne geplant', ' signals planned'], ['Ton übernommen: ', 'Sound applied: '],
     ['Ungültige Zeit: ', 'Invalid time: '], ['Uhrzeit hh:mm', 'Time hh:mm'], ['Ende vor Beginn', 'End before start'],
-    ['Slot gestartet', 'Slot started'], ['Slot beendet', 'Slot ended'], ['Slot löschen?', 'Delete slot?'],
+    ['Timeslot gestartet', 'Time slot started'], ['Timeslot beendet', 'Time slot ended'], ['Timeslot löschen?', 'Delete time slot?'],
     ['Regel löschen?', 'Delete rule?'], ['“ löschen?', '”?'], ['PIN geändert', 'PIN changed'], ['PIN falsch (', 'Wrong PIN ('],
     [' Fehlversuche)', ' failed attempts)'], ['Entschlüssele …', 'Decrypting …'], ['Verschlüssele …', 'Encrypting …'], ['Prüfe …', 'Checking …'],
     ['Importiert: ', 'Imported: '], ['Kapitel beenden: ', 'End chapter: '], ['Verlängern: ', 'Extend: '],
@@ -174,14 +175,14 @@
     [' Unterpunkte gespeichert', ' sub-clauses saved'], [' Sätze im Archiv', ' records in the archive'],
     ['+ Dokument', '+ Document'], ['Export .txt', 'Export .txt'], ['erwartet: ', 'expected: '],
     ['% der Planzeit', '% of planned time'], ['min vor Planende', 'min before planned end'], ['min vor Ende', 'min before end'],
-    ['min nach Beginn', 'min after start'], ['min im Slot', 'min in slot'], ['Erinnerung ', 'Reminder '],
+    ['min nach Beginn', 'min after start'], ['min im Slot', 'min in time slot'], ['Erinnerung ', 'Reminder '],
     [' – über Tagesende', ' – beyond end of day'], [' · noch kein Abgleich', ' · not synchronized yet'], [' · letzter Abgleich ', ' · last sync '],
     [' · läuft seit ', ' · running since '], [' · Oberfläche ', ' · UI '], [' · Logik ', ' · Logic '], [' · Austausch ', ' · Exchange '],
     [' · Vibration ', ' · vibration '], [' · Vorrang ', ' · priority '], [' · Plan ', ' · plan '], ['Planende ', 'Planned end '],
     [', Planende ', ', planned end '], [' h · erfasst ', ' h · recorded '], [' h · Rest ', ' h · left '], [' h · Ist ', ' h · actual '],
     [' h heute', ' h today'], ['Auditende ', 'audit end '], [' – bei ', ' – at '], ['(Plan ', '(plan '], [' min früher', ' min earlier'],
     [' (Teil ', ' (part '], [' (Audit)', ' (audit)'], ['Tag ', 'Day '], ['Heute ', 'Today '], ['Jetzt ', 'Now '], ['Vorgabe ', 'Target '],
-    ['Erfasst ', 'Recorded '], ['Soll ', 'Target '], ['Auditor ', 'Auditor '], ['Timeslot ', 'Timeslot '],
+    ['Erfasst ', 'Recorded '], ['Soll ', 'Target '], ['Auditor ', 'Auditor '], ['Timeslot ', 'Time slot '],
     ['Abgleich mit ', 'Sync with '], ['Gerät ', 'Device '], ['Datei: ', 'File: '], ['Handy: ', 'Phone: '], ['OK = Stand von ', 'OK = state of '],
     [' geändert, ', ' changed, '], [' gelöscht, ', ' deleted, '], [' neu, ', ' new, '], [' Rückfragen, ', ' queries, '], [' gleich.', ' equal.'],
     ['Fehler: ', 'Error: '], ['noch ', 'left '], ['alle ', 'every '], ['bis ', 'until '], [' von ', ' of '], [' fremd', ' other auditor']

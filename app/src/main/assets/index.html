@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   Auditplan – Oberfläche
-  Version: 2.0.9 (2026-11-27)
+  Version: 2.0.10 (2026-11-27)
   Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
   Läuft in der Android-Hülle (window.AndroidBridge) und zum Ausprobieren auch im Browser.
   Versionshistorie:
@@ -51,6 +51,8 @@
     2.0.9 (2026-11-27) Sprache DE/EN (Wunsch Frank 2026-11-27): Umschalter oben in den
                        Einstellungen; Übersetzung aller sichtbaren Texte und Meldungen über das
                        neue Modul i18n.js; Wahl bleibt auf dem Gerät (auch für die PIN-Seite).
+    2.0.10 (2026-11-27) Begriffe wie im TimeKeeper am PC (CONV-015, Befund Frank 2026-11-27):
+                       „Position“ statt „Aufgabe“, „Timeslot“ statt „Slot“ in allen Texten.
 -->
 <html lang="de">
 <head>
@@ -292,12 +294,12 @@ textarea{min-height:110px}
     <div class="zifferblatt"><svg id="t-uhr" viewBox="0 0 200 200"></svg>
       <div class="unter"><strong id="t-digital">--:--</strong> · <span id="t-datum"></span></div></div>
     <div class="zifferblatt"><svg id="t-timer" viewBox="0 0 200 200"></svg>
-      <div class="unter"><strong id="t-dauer">–</strong> · <span id="t-bezug">kein Slot</span></div></div>
+      <div class="unter"><strong id="t-dauer">–</strong> · <span id="t-bezug">kein Timeslot</span></div></div>
   </div>
   <div class="karte">
     <div class="raster">
       <div><label>Auftrag</label><input id="t-auftrag" type="text" list="dl-auftrag" placeholder="tippen oder wählen" autocomplete="off"></div>
-      <div><label>Aufgabe</label><input id="t-pos" type="text" list="dl-pos" placeholder="tippen oder wählen" autocomplete="off"></div>
+      <div><label>Position</label><input id="t-pos" type="text" list="dl-pos" placeholder="tippen oder wählen" autocomplete="off"></div>
     </div>
     <datalist id="dl-auftrag"></datalist><datalist id="dl-pos"></datalist>
     <label>Planzeit (min, leer = ohne Countdown)</label><input id="t-plan" type="text" inputmode="numeric" placeholder="z. B. 90">
@@ -308,7 +310,7 @@ textarea{min-height:110px}
   <div class="karte">
     <div class="reihe"><strong style="flex:3" id="t-summe">Heute</strong><input id="t-datumwahl" type="date" style="flex:2"></div>
     <div id="t-slots"></div>
-    <div class="leise" style="margin-top:6px">Tipp auf einen Slot: ändern, teilen, parken, löschen. Buchen und Ignorieren nur am PC.</div>
+    <div class="leise" style="margin-top:6px">Tipp auf einen Timeslot: ändern, teilen, parken, löschen. Buchen und Ignorieren nur am PC.</div>
   </div>
 </div>
 
@@ -1458,9 +1460,9 @@ $('t-start').onclick = function () {
   if (pl && !(+pl > 0)) { toast('Planzeit in Minuten, z. B. 90'); return; }
   auftragMerken(au, po);
   slotStarten(au, po, $('t-bem').value.trim(), pl ? +pl : 0);
-  $('t-bem').value = ''; $('t-plan').value = ''; toast('Slot gestartet'); tagAuswahl(); tagDienst(); tagAnzeigen();
+  $('t-bem').value = ''; $('t-plan').value = ''; toast('Timeslot gestartet'); tagAuswahl(); tagDienst(); tagAnzeigen();
 };
-$('t-stopp').onclick = function () { if (slotStoppen()) { toast('Slot beendet'); tagDienst(); } tagAnzeigen(); };
+$('t-stopp').onclick = function () { if (slotStoppen()) { toast('Timeslot beendet'); tagDienst(); } tagAnzeigen(); };
 /** Audit-Tage: Audit starten öffnet einen Slot auf der Audit-Position, Audit beenden schließt ihn */
 function auditSlotStarten() {
   var a = auditById(aktuell.id); if (!a || a.probe) return;
@@ -1503,7 +1505,7 @@ function tagAnzeigen() {
     $('t-start').textContent = 'Wechsel';
   } else {
     uhrZeichnen('t-uhr', d, null);
-    $('t-dauer').textContent = '–'; $('t-bezug').textContent = 'kein Slot';
+    $('t-dauer').textContent = '–'; $('t-bezug').textContent = 'kein Timeslot';
     timerZeichnen('t-timer', 1, '–', 'var(--leise)', []); $('t-start').textContent = 'Start';
   }
   var sum = tagSumme(tagWahl), soll = (+daten.einst.sollTag || 7.7) * 3600000;
@@ -1516,13 +1518,13 @@ function tagAnzeigen() {
         '<span>' + esc(t.auftrag) + ' / ' + esc(t.position) + (t.bem ? '<div class="st">' + esc(t.bem) + '</div>' : '') + '</span>' +
         '<span class="st">' + esc(t.status) + '<br>' + L.stunden(Math.round(slotDauer(t) / 900000) / 4) + ' h</span></div>';
     });
-  $('t-slots').innerHTML = html || '<div class="leise">Keine Slots an diesem Tag.</div>';
+  $('t-slots').innerHTML = html || '<div class="leise">Keine Timeslots an diesem Tag.</div>';
 }
 $('t-slots').addEventListener('click', function (ev) {
   var r = ev.target.closest('.slot'); if (!r) return;
   var s = daten.slots[+r.dataset.i]; if (!s) return;
   if (s.status === 'booked' || s.status === 'ignored') { toast('Gebucht bzw. ignoriert – nur am PC änderbar'); return; }
-  dialog('Slot ' + hm(s.start) + '–' + (s.ende ? hm(s.ende) : 'läuft'),
+  dialog('Timeslot ' + hm(s.start) + '–' + (s.ende ? hm(s.ende) : 'läuft'),
     '<div class="raster"><div><label>Beginn</label><input id="sl-von" type="text" value="' + hm(s.start) + '"></div>' +
     '<div><label>Ende</label><input id="sl-bis" type="text" value="' + (s.ende ? hm(s.ende) : '') + '" placeholder="läuft"></div></div>' +
     '<label>Bemerkung</label><input id="sl-bem" type="text" value="' + esc(s.bem) + '">' +
@@ -1538,7 +1540,7 @@ $('t-slots').addEventListener('click', function (ev) {
       s.start = von; s.ende = bis; s.bem = $('sl-bem').value.trim();
       if (t !== null) {
         var tm = d0.getTime() + t * 60000;
-        if (tm <= von || (bis && tm >= bis)) { s.start = alterStart; toast('Teilungszeit liegt nicht im Slot'); return false; }
+        if (tm <= von || (bis && tm >= bis)) { s.start = alterStart; toast('Teilungszeit liegt nicht im Timeslot'); return false; }
         daten.slots.push({ auftrag: s.auftrag, position: s.position, start: tm, ende: s.ende, status: s.status, bem: s.bem, geaendert: jetztStempel(), geloescht: false });
         s.ende = tm;
       }
@@ -1548,7 +1550,7 @@ $('t-slots').addEventListener('click', function (ev) {
       s.geaendert = jetztStempel(); sichern(); tagDienst(); tagAnzeigen();
     } }]);
   $('sl-park').onclick = function () { s.status = s.status === 'parked' ? 'open' : 'parked'; s.geaendert = jetztStempel(); sichern(); dlgZu(); tagAnzeigen(); };
-  $('sl-del').onclick = function () { if (!confirm('Slot löschen?')) return; s.geloescht = true; s.geaendert = jetztStempel(); sichern(); dlgZu(); tagDienst(); tagAnzeigen(); };
+  $('sl-del').onclick = function () { if (!confirm('Timeslot löschen?')) return; s.geloescht = true; s.geaendert = jetztStempel(); sichern(); dlgZu(); tagDienst(); tagAnzeigen(); };
 });
 
 // ---------------------------------------------------------------- Datenaustausch .apdat (A6)
