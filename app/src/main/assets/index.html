@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   Auditplan – Oberfläche
-  Version: 2.0.7 (2026-11-27)
+  Version: 2.0.8 (2026-11-27)
   Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
   Läuft in der Android-Hülle (window.AndroidBridge) und zum Ausprobieren auch im Browser.
   Versionshistorie:
@@ -44,6 +44,10 @@
     2.0.7 (2026-11-27) Uhren (Wunsch Frank 2026-11-27): beide Zifferblätter immer gleich groß
                        (Spalten minmax(0,1fr), langer Text kürzt statt zu verbreitern). Querformat
                        auf Arbeitstag und Audit: Uhren links untereinander, Text rechts.
+    2.0.8 (2026-11-27) Einstellungen (Wunsch Frank 2026-11-27): oben Hauptschalter Ton an/aus
+                       und Vibration an/aus für alle Signalregeln; wirkt sofort auf einen
+                       laufenden Audit- bzw. Arbeitstag-Dienst. Ton aus = Ton "aus" an die Hülle
+                       (Ton.java 2.0.8 spielt dann nichts).
 -->
 <html lang="de">
 <head>
@@ -308,6 +312,14 @@ textarea{min-height:110px}
 <!-- ================= Einstellungen ================= -->
 <div class="screen" id="s-einst">
   <div class="kopf"><button id="n-zurueck">←</button><h1>Einstellungen</h1></div>
+  <div class="karte">
+    <strong>Signale</strong>
+    <div class="reihe" style="margin-top:10px;gap:18px">
+      <label style="display:flex;gap:8px;align-items:center;margin:0;color:var(--text)"><input type="checkbox" id="n-ton"> Ton an</label>
+      <label style="display:flex;gap:8px;align-items:center;margin:0;color:var(--text)"><input type="checkbox" id="n-vib"> Vibration an</label>
+    </div>
+    <div class="leise" style="margin-top:6px">Hauptschalter für alle Signalregeln; gilt sofort, auch während eines Audits oder Arbeitstags.</div>
+  </div>
   <div class="karte">
     <div class="reihe"><strong style="flex:3">Töne – Signalregeln</strong><button id="r-neu" style="flex:1">+ Regel</button></div>
     <div id="r-liste"></div>
@@ -1137,10 +1149,18 @@ function timerZeichnen(id, anteil, text, farbe, marken) {
 
 // ---------------------------------------------------------------- Töne / Dienst (Wecker-Dienst ohne Namen, A5)
 function neutral(ev) {
+  var tonAus = daten && daten.einst.tonAus, vibAus = daten && daten.einst.vibAus;   // 2.0.8: Hauptschalter
   return ev.map(function (e) {
     var t = L.TOENE.filter(function (x) { return x.id === e.ton; })[0];
-    return { t: e.t, art: e.art, ton: e.ton, lautst: e.lautst, anschlaege: e.anschlaege, vib: e.vib, vorrang: e.vorrang, text: t ? t.name : 'Signal' };
+    return { t: e.t, art: e.art, ton: tonAus ? 'aus' : e.ton, lautst: e.lautst, anschlaege: e.anschlaege, vib: vibAus ? 'AUS' : e.vib,
+      vorrang: e.vorrang, text: t ? t.name : 'Signal' };
   });
+}
+/** 2.0.8: laufenden Dienst mit den neuen Hauptschaltern neu planen */
+function dienstNeuPlanen() {
+  var l = laufend(); if (!l) return;
+  if (l.art === 'tag') tagDienst();
+  else if (aktuell && l.art === 'audit') { var p = planFuerDienst(); if (p.ereignisse.length) dienstStarten(p); }
 }
 function planFuerDienst() {
   var jetzt = Date.now();
@@ -1212,6 +1232,7 @@ function browserTakt() {
 // ---------------------------------------------------------------- Einstellungen und Signalregeln (A2)
 function einstZeigen() {
   var e = daten.einst;
+  $('n-ton').checked = !e.tonAus; $('n-vib').checked = !e.vibAus;      // 2.0.8
   $('a-schirm').checked = !!e.schirm; $('n-sperre').value = e.sperreMin; $('n-rad').value = e.radSek;
   $('n-auditpos').value = e.auditPos; $('n-soll').value = L.stunden(+e.sollTag);
   $('r-liste').innerHTML = daten.regeln.filter(function (r) { return !r.geloescht; }).map(function (r) {
@@ -1227,6 +1248,8 @@ function einstZeigen() {
 }
 function einstSetzen(k, v) { daten.einst[k] = v; daten.einstStempel[k] = jetztStempel(); sichern(); }
 $('a-schirm').onchange = function () { einstSetzen('schirm', this.checked); };
+$('n-ton').onchange = function () { einstSetzen('tonAus', !this.checked); dienstNeuPlanen(); toast(this.checked ? 'Ton an' : 'Ton aus'); };
+$('n-vib').onchange = function () { einstSetzen('vibAus', !this.checked); dienstNeuPlanen(); toast(this.checked ? 'Vibration an' : 'Vibration aus'); };
 $('n-sperre').onchange = function () { var v = Math.max(1, Math.round(L.zahl(this.value)) || 15); einstSetzen('sperreMin', v); this.value = v; };
 $('n-rad').onchange = function () { var v = Math.max(3, Math.round(L.zahl(this.value)) || 10); einstSetzen('radSek', v); this.value = v; };
 $('n-auditpos').onchange = function () { einstSetzen('auditPos', this.value.trim() || 'audit onsite'); };

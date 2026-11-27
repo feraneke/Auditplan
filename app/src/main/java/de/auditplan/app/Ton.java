@@ -1,6 +1,6 @@
 /*
  * Auditplan – Abspielen der Signaltöne.
- * Version: 2.0.0 (2026-11-26)
+ * Version: 2.0.8 (2026-11-27)
  * Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
  *
  * Die Töne laufen über den Wecker-Kanal (USAGE_ALARM): Sie sind auch zu hören,
@@ -14,6 +14,8 @@
  *   1.0.0 (2026-11-25) Sonar und Gong; Gong 100 % zweimal.
  *   2.0.0 (2026-11-26) Stufe A2: sechs Töne und eigene Dateien, Anschläge 1-3,
  *                      Vibration AUS/KURZ/LANG je Signalregel; Versionsangabe (BP-023).
+ *   2.0.8 (2026-11-27) Ton "aus" (Hauptschalter in den Einstellungen): nichts abspielen,
+ *                      Vibration wie übergeben.
  */
 package de.auditplan.app;
 
@@ -33,7 +35,7 @@ import java.io.File;
 final class Ton {
 
     static final String TAG = "Auditplan";
-    static final String VERSION = "2.0.0";
+    static final String VERSION = "2.0.8";
     static final String ORDNER = "toene";
 
     private Ton() {
@@ -79,6 +81,11 @@ final class Ton {
             if (pm != null) {
                 wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Auditplan:Ton");
                 wl.acquire(15_000L);
+            }
+            if ("aus".equals(ton)) {                                  // 2.0.8: Hauptschalter Ton aus
+                Log.d(TAG, "Ton.spielen | Ton aus");
+                vibrieren(app, vib);
+                return;
             }
             final float v = Math.max(0.05f, Math.min(1f, lautst));
             final Uri uri = quelle(app, ton);
