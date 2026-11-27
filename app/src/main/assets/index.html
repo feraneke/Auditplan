@@ -97,7 +97,8 @@
                        allen Positionen. Dauer auf der Seite Timeslot und Tagessumme als h:mm wie in der Tabelle.
     2.0.21 (2026-11-27) Fehler (Befund Frank 2026-11-27): Sprung mit „Weiter“ der Tastatur ins Feld Ende übernahm
                        den grauen Vorschlag „jetzt“; der neue Timeslot war sofort beendet statt zu laufen.
-                       Vorschläge übernimmt jetzt nur ein echter Tipp auf das Feld.
+                       Vorschläge übernimmt jetzt nur ein echter Tipp auf das Feld. Vorschlag Beginn heute
+                       immer jetzt (Festlegung Frank 2026-11-27, ersetzt „lückenlos“ aus 2.0.18 für heute).
 -->
 <html lang="de">
 <head>
@@ -1743,10 +1744,11 @@ function feld(f, wert, vorschlag, klasse, extra) {
     (vorschlag ? ' placeholder="' + esc(vorschlag) + '" data-v="' + esc(vorschlag) + '"' : '') +
     (f === 'von' || f === 'bis' ? ' data-uhr inputmode="numeric"' : '') + ' autocomplete="off"' + (extra || '') + '>';
 }
-/** 2.0.18/2.0.19: Vorschlag Beginn = Ende des letzten Timeslots des Tages (lückenlos); heute sonst jetzt */
+/** Vorschlag Beginn: heute immer jetzt (Festlegung Frank 2026-11-27, 2.0.21);
+    an früheren Tagen das Ende des letzten Timeslots dieses Tages (lückenlos nachtragen) */
 function beginnVorschlag(iso) {
   var jetzt = Date.now(), h = heuteIso(), e = 0;
-  if (iso === h && laufenderSlot()) return hm(jetzt);
+  if (iso === h) return hm(jetzt);
   daten.slots.forEach(function (s) { if (!s.geloescht && s.ende && isoVon(s.ende) === iso && s.ende <= jetzt && s.ende > e) e = s.ende; });
   return e ? hm(e) : iso === h ? hm(jetzt) : '';
 }
