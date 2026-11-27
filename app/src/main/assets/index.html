@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   Auditplan – Oberfläche
-  Version: 2.0.11 (2026-11-27)
+  Version: 2.0.12 (2026-11-27)
   Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
   Läuft in der Android-Hülle (window.AndroidBridge) und zum Ausprobieren auch im Browser.
   Versionshistorie:
@@ -60,6 +60,9 @@
                        Startseite: Arbeitstag als Knopf neben „+ Neues Audit“.
                        Audit bearbeiten: Kopfdaten, Kapitel und Zeitplan als drei Seiten mit
                        Reitern statt untereinander; jede Seite erreicht die anderen.
+    2.0.12 (2026-11-27) Audittag (Befund Frank 2026-11-27): Timeslots im Wählrad je eine Zeile
+                       (Zeit · Kapitel · Dokumente; geänderter Plan mit •); Tipp öffnet wie bisher
+                       die Seite Kapitel-Dokumente. Zeitplan im Editor ebenfalls einzeilig.
 -->
 <html lang="de">
 <head>
@@ -103,7 +106,8 @@ label{display:block;font-size:13px;color:var(--leise);margin:8px 0 4px}
 .posten .pfeile{display:flex;gap:2px}
 .posten .pfeile button{padding:4px 7px;font-size:13px}
 .posten.aus .name{color:var(--leise);text-decoration:line-through}
-.planzeile{display:grid;grid-template-columns:96px 1fr 44px;gap:6px;font-size:14px;padding:3px 0}
+.planzeile{display:grid;grid-template-columns:96px minmax(0,1fr) 44px;gap:6px;font-size:14px;padding:3px 0}
+.planzeile span:nth-child(2){white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .planzeile.pause{color:var(--leise);font-style:italic}
 .tagbalken{background:var(--karte2);border-radius:6px;padding:4px 8px;font-size:13px;margin:6px 0}
 .tagbalken.rot{background:#4a2326;color:#ffd2cf}
@@ -135,9 +139,10 @@ label{display:block;font-size:13px;color:var(--leise);margin:8px 0 4px}
 .radrahmen{position:relative;height:364px;overflow:hidden;border-radius:var(--radius);background:var(--karte)}
 .rad{height:100%;overflow-y:scroll;scroll-snap-type:y mandatory;perspective:600px;scrollbar-width:none;padding:156px 0}
 .rad::-webkit-scrollbar{display:none}
-.rz{height:52px;scroll-snap-align:center;display:flex;flex-direction:column;justify-content:center;padding:0 16px;
+.rz{height:52px;scroll-snap-align:center;display:flex;flex-direction:row;align-items:center;gap:8px;padding:0 16px;white-space:nowrap;
   transform-origin:center;transition:color .2s}
-.rz .t{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rz .t{flex:1;min-width:0;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rz .zt{flex:0 0 auto;font-size:13px;color:var(--leise);font-variant-numeric:tabular-nums}
 .rz .u{font-size:12px;color:var(--leise)}
 .rz.vorbei .t{color:var(--leise)}
 .rz.aktuell .t{color:var(--akzent);font-weight:600}
@@ -888,10 +893,10 @@ function radBauen() {
   $('a-rad').innerHTML = aktuell.liste.map(function (e, i) {
     var geaendert = e.von !== e.plVon || e.bis !== e.plBis;
     var z = e.art === 'kapitel' ? dokZaehler(a, e) : null;
-    return '<div class="rz' + (e.art === 'pause' ? ' pause' : '') + (e.ueber ? ' ueber' : '') + '" data-i="' + i + '"><div class="t">' + esc(e.titel) + '</div>' +
-      '<div class="u">Tag ' + e.tag + ' · ' + hm(e.von) + '–' + hm(e.bis) + ' · ' + L.stunden((e.bis - e.von) / 3600000) + ' h' +
-      (z && z.erwartet ? ' · Dok. ' + z.erledigt + '/' + z.erwartet : '') +
-      (geaendert ? ' <span class="pl">(Plan ' + hm(e.plVon) + '–' + hm(e.plBis) + ')</span>' : '') + '</div></div>';
+    return '<div class="rz' + (e.art === 'pause' ? ' pause' : '') + (e.ueber ? ' ueber' : '') + '" data-i="' + i + '">' +   // 2.0.12: eine Zeile
+      '<span class="zt">' + (e.tag > 1 ? 'T' + e.tag + ' ' : '') + hm(e.von) + '–' + hm(e.bis) + (geaendert ? ' •' : '') + '</span>' +
+      '<span class="t">' + esc(e.titel) + '</span>' +
+      (z && z.erwartet ? '<span class="u">' + z.erledigt + '/' + z.erwartet + '</span>' : '') + '</div>';
   }).join('');
   aktuell.gebaut = aktuell.id + '/' + aktuell.aud + '/' + (a.abw || []).length;
   radStil();
