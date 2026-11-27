@@ -1,6 +1,6 @@
 /*
  * Auditplan – Sprache DE/EN
- * Version: 2.0.18 (2026-11-27)
+ * Version: 2.0.19 (2026-11-27)
  * Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
  *
  * Die Oberfläche ist auf Deutsch geschrieben. Bei Sprache EN übersetzt dieses Modul
@@ -21,11 +21,12 @@
  *   2.0.16 (2026-11-27) Seite Monat (Task 400-02): Tabelle, Suche, Meldungen, Monatsnamen.
  *   2.0.17 (2026-11-27) Versionsstand mit index.html 2.0.17 (keine neuen Texte).
  *   2.0.18 (2026-11-27) Monat: Knopf Wechsel, Hinweistext, Meldung nach Wechsel.
+ *   2.0.19 (2026-11-27) Tagesansicht als Tabelle: Hinweistext, eingeklappter Bereich.
  */
 (function (global) {
   'use strict';
 
-  var VERSION = '2.0.18';
+  var VERSION = '2.0.19';
   var SCHLUESSEL = 'auditplan.sprache';
 
   // Ganze Texte (nach Trim verglichen)
@@ -41,6 +42,9 @@
     'Beginn liegt in der Zukunft': 'Start lies in the future', 'Timeslot gibt es schon': 'Time slot already exists',
     'Beginn vor dem laufenden Timeslot': 'Start before the running time slot', 'Beginn fehlt': 'Start missing', 'Tag als TT.MM.': 'Day as DD.MM.',
     'Timeslot anlegen': 'Create time slot',
+    'Graue Werte sind Vorschläge – Antippen übernimmt sie. + legt die oberste Zeile an, ⇄ wechselt, › öffnet den Timeslot. Buchen und Ignorieren nur am PC.':
+      'Grey values are suggestions – tap to take them. + creates the top row, ⇄ switches, › opens the time slot. Booking and ignoring only on the PC.',
+    'Aufträge, Positionen, Start mit Planzeit': 'Orders, positions, start with planned time',
     'Auditplan': 'Audit plan', 'Auditplan entsperren': 'Unlock audit plan', 'Entsperren': 'Unlock', 'Festlegen': 'Set', 'Darstellung': 'Appearance', 'Kopfdaten': 'Header data', 'Aufträge': 'Orders', 'Positionen': 'Positions', 'Timeslots': 'Time slots',
     'ohne Position': 'no position', 'Neuer Auftrag': 'New order', 'Neue Position': 'New position', '+ Neuer Auftrag': '+ New order',
     '+ Neue Position': '+ New position', 'Anzeige Handy': 'Display on phone', 'Vorgabe (min)': 'Target (min)', 'leer = ohne Countdown': 'empty = no countdown',
