@@ -1,6 +1,6 @@
 /*
  * Auditplan – Sprache DE/EN
- * Version: 2.0.15 (2026-11-27)
+ * Version: 2.0.16 (2026-11-27)
  * Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
  *
  * Die Oberfläche ist auf Deutsch geschrieben. Bei Sprache EN übersetzt dieses Modul
@@ -18,15 +18,26 @@
  *   2.0.10 (2026-11-27) Englische Begriffe wie im TimeKeeper am PC: Order, Position, remarks, time slot.
  *   2.0.11 (2026-11-27) Seite Timeslot, Darstellung Dunkel/Hell.
  *   2.0.15 (2026-11-27) Arbeitstag mit Listen und Fenstern für Aufträge, Positionen, Timeslots.
+ *   2.0.16 (2026-11-27) Seite Monat (Task 400-02): Tabelle, Suche, Meldungen, Monatsnamen.
  */
 (function (global) {
   'use strict';
 
-  var VERSION = '2.0.15';
+  var VERSION = '2.0.16';
   var SCHLUESSEL = 'auditplan.sprache';
 
   // Ganze Texte (nach Trim verglichen)
   var GANZ = {
+    // 2.0.16: Seite Monat
+    'Heute ›': 'Today ›', 'Tag': 'Day', 'Auftrag / Position': 'Order / position', 'Dauer': 'Duration', 'ohne Countdown': 'no countdown',
+    'Suchen: Auftrag, Position, Bemerkung': 'Search: order, position, remarks', 'Keine Timeslots.': 'No time slots.', 'Keine Treffer.': 'No matches.',
+    'Graue Werte sind Vorschläge – Antippen übernimmt sie. Tipp auf den Tag öffnet die Tagesansicht mit den Uhren, › den Timeslot, + legt die oberste Zeile an.':
+      'Grey values are suggestions – tap to take them. Tap the day to open the day view with the clocks, › opens the time slot, + creates the top row.',
+    'Timeslot angelegt': 'Time slot created', 'Timeslot nicht gefunden': 'Time slot not found', 'Es läuft schon ein Timeslot': 'A time slot is already running',
+    'Ende fehlt – laufen darf nur ein Timeslot von heute': 'End missing – only a time slot of today may be running',
+    'Beginn liegt in der Zukunft': 'Start lies in the future', 'Timeslot gibt es schon': 'Time slot already exists',
+    'Beginn vor dem laufenden Timeslot': 'Start before the running time slot', 'Beginn fehlt': 'Start missing', 'Tag als TT.MM.': 'Day as DD.MM.',
+    'Timeslot anlegen': 'Create time slot',
     'Auditplan': 'Audit plan', 'Auditplan entsperren': 'Unlock audit plan', 'Entsperren': 'Unlock', 'Festlegen': 'Set', 'Darstellung': 'Appearance', 'Kopfdaten': 'Header data', 'Aufträge': 'Orders', 'Positionen': 'Positions', 'Timeslots': 'Time slots',
     'ohne Position': 'no position', 'Neuer Auftrag': 'New order', 'Neue Position': 'New position', '+ Neuer Auftrag': '+ New order',
     '+ Neue Position': '+ New position', 'Anzeige Handy': 'Display on phone', 'Vorgabe (min)': 'Target (min)', 'leer = ohne Countdown': 'empty = no countdown',
@@ -196,6 +207,11 @@
     [' geändert, ', ' changed, '], [' gelöscht, ', ' deleted, '], [' neu, ', ' new, '], [' Rückfragen, ', ' queries, '], [' gleich.', ' equal.'],
     ['Fehler: ', 'Error: '], ['noch ', 'left '], ['alle ', 'every '], ['bis ', 'until '], [' von ', ' of '], [' fremd', ' other auditor']
   ];
+  // 2.0.16: Monatsnamen der Seite Monat (nur mit folgendem Leerzeichen vor der Jahreszahl)
+  ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'].forEach(function (m, i) {
+    TEILE.push([m + ' 20', ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][i] + ' 20']);
+  });
+  TEILE.push([' Treffer', ' matches'], [' T · ', ' d · ']);
   TEILE.sort(function (a, b) { return b[0].length - a[0].length; });
   var GANZ_KEYS = {};
   Object.keys(GANZ).forEach(function (k) { GANZ_KEYS[k] = true; });
