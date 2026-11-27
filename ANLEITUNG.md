@@ -50,4 +50,4 @@ Ohne Schlüssel lässt sich jede neue Version nur nach dem Deinstallieren der al
 Neue Dateien landen im Repository, und GitHub baut die neue APK unter **Releases**. Du installierst sie über die alte, und die Daten bleiben erhalten.
 
 ---
-Erstellt mit Claude (claude.ai), Projekt „400_Auditplan“, 25.11.2026; Stand App 2.0 (Stufen A1–A7), 26.11.2026; Arbeitstag ohne PC (2.0.6), 27.11.2026; Monatstabelle (2.0.16), 27.11.2026.
+Erstellt mit Claude (claude.ai), Projekt „400_Auditplan“, 25.11.2026; Stand App 2.0 (Stufen A1–A7), 26.11.2026; Arbeitstag ohne PC (2.0.6), 27.11.2026; Monatstabelle (2.0.16), 27.11.2026; Uhrzeiten ohne Doppelpunkt eintippbar (1300 = 13:00) und ⚙ Einstellungen auf jeder Seite (2.0.17), 27.11.2026.

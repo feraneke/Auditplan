@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   Auditplan – Oberfläche
-  Version: 2.0.16 (2026-11-27)
+  Version: 2.0.17 (2026-11-27)
   Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
   Läuft in der Android-Hülle (window.AndroidBridge) und zum Ausprobieren auch im Browser.
   Versionshistorie:
@@ -79,6 +79,10 @@
                        direkt in der Zeile, graue Vorschläge (Antippen übernimmt), Suche; Tipp auf den Tag
                        öffnet die Tagesansicht mit den Uhren, › die Seite Timeslot. Einstellungen zeigen
                        die Version der Oberfläche (bisher fest „2.0.0“). Platzhalter Planzeit gekürzt.
+    2.0.17 (2026-11-27) Wünsche Frank 2026-11-27 (Chat 400_App_004): Uhrzeitfelder ergänzen den Doppelpunkt
+                       (1300 -> 13:00, 830 -> 08:30, 8 -> 08:00; bei 4 Ziffern sofort, sonst beim Verlassen),
+                       Zahlentastatur in allen Uhrzeitfeldern. Knopf Einstellungen ⚙ auf jeder Seite;
+                       Zurück führt auf die Seite, von der man kam.
 -->
 <html lang="de">
 <head>
@@ -271,6 +275,7 @@ html[data-thema=hell] #toast{background:#2b3540}
 .mz.vs{background:var(--karte2)}
 .mz.vs .tg input{font-size:12px;color:var(--akzent)}
 .mz.vs .pf{color:var(--akzent);font-weight:700}
+.kopf .zahnrad{flex:0 0 auto;padding:8px 10px}
 .sperrhinweis{background:#3a2f12;color:#ffe3a3;border-radius:10px;padding:8px 10px;font-size:13px;margin:6px 0}
 </style>
 </head>
@@ -313,9 +318,9 @@ html[data-thema=hell] #toast{background:#2b3540}
       <div><label>Auditzeit (h)</label><input id="e-zeit" type="text" inputmode="decimal"></div>
       <div><label>Audittyp</label><select id="e-typ"><option>1. ÜA</option><option>2. ÜA</option><option>Rezert</option></select></div>
       <div><label>Auditstart</label><input id="e-start" type="date"></div>
-      <div><label>Startzeit</label><input id="e-startzeit" type="text" value="09:00"></div>
-      <div><label>Tagesbeginn</label><input id="e-beginn" type="text" value="09:00"></div>
-      <div><label>Tagesende</label><input id="e-ende" type="text" value="17:30"></div>
+      <div><label>Startzeit</label><input id="e-startzeit" type="text" data-uhr inputmode="numeric" value="09:00"></div>
+      <div><label>Tagesbeginn</label><input id="e-beginn" type="text" data-uhr inputmode="numeric" value="09:00"></div>
+      <div><label>Tagesende</label><input id="e-ende" type="text" data-uhr inputmode="numeric" value="17:30"></div>
       <div><label>Mittagspause (h)</label><input id="e-pause" type="text" value="0,5" inputmode="decimal"></div>
       <div><label>7.3 ausgeschlossen</label><input id="e-nodev" type="checkbox"></div>
     </div>
@@ -429,12 +434,12 @@ html[data-thema=hell] #toast{background:#2b3540}
       <div><label>Position</label><input id="sl-pos" type="text" list="dl-pos" autocomplete="off"></div>
     </div>
     <div class="raster">
-      <div><label>Beginn</label><input id="sl-von" type="text" placeholder="hh:mm"></div>
-      <div><label>Ende</label><input id="sl-bis" type="text" placeholder="läuft"></div>
+      <div><label>Beginn</label><input id="sl-von" type="text" data-uhr inputmode="numeric" placeholder="hh:mm"></div>
+      <div><label>Ende</label><input id="sl-bis" type="text" data-uhr inputmode="numeric" placeholder="läuft"></div>
     </div>
     <div class="raster">
       <div><label>Planzeit (min)</label><input id="sl-plan" type="text" inputmode="numeric"></div>
-      <div><label>Teilen um (hh:mm)</label><input id="sl-teil" type="text" placeholder="leer = nicht teilen"></div>
+      <div><label>Teilen um (hh:mm)</label><input id="sl-teil" type="text" data-uhr inputmode="numeric" placeholder="leer = nicht teilen"></div>
     </div>
     <div class="leise" id="sl-info" style="margin-top:8px"></div>
     <label>Bemerkung</label><textarea id="sl-bem"></textarea>
@@ -521,7 +526,7 @@ html[data-thema=hell] #toast{background:#2b3540}
 var L = window.Logik, AP = window.Apdat;
 var BR = window.AndroidBridge || null;
 var ALT = 'auditplan.daten', TRESOR = 'auditplan.tresor', SPERRE = 'auditplan.sperre';
-var OBERFLAECHE = '2.0.16';                                           // 2.0.16: Version dieser Datei, angezeigt in den Einstellungen
+var OBERFLAECHE = '2.0.17';                                           // 2.0.16: Version dieser Datei, angezeigt in den Einstellungen
 var KUERZEL_RE = /^(K-[A-Z0-9]{6}\/A-[A-Z0-9]{4}|NEU-\d+)$/;
 
 // ---------------------------------------------------------------- Grundfunktionen
@@ -665,6 +670,7 @@ function zeige(n) {
   zeigeRoh(n);
   if (n !== 'audit' && n !== 'kdok') schirm(false);
   $('a-gesperrt').style.display = nurAudit ? '' : 'none';
+  [].forEach.call(document.querySelectorAll('.kopf .zahnrad'), function (b) { b.style.display = nurAudit ? 'none' : ''; });   // 2.0.17
 }
 // Zurück-Taste von Android: true = in der App zurückgegangen
 function zurueck() {
@@ -675,6 +681,7 @@ function zurueck() {
   if (ansicht === 'doku') { einstSeite(); return true; }
   if (ansicht === 'slot') { slotZurueck(); return true; }
   if (ansicht === 'tag') { monatZeigen(); return true; }           // 2.0.16: Tagesansicht -> Monat
+  if (ansicht === 'einst') { einstZurueck(); return true; }        // 2.0.17: zurück zur Seite vor den Einstellungen
   zeigeListe(); return true;
 }
 function appWiederDa() {
@@ -691,8 +698,8 @@ function appWiederDa() {
   if (ansicht === 'monat') monatAnzeigen();
 }
 function einstSeite() { einstZeigen(); zeige('einst'); }
-$('n-zurueck').onclick = function () { zeigeListe(); };
-$('b-einst').onclick = function () { einstSeite(); };
+$('n-zurueck').onclick = function () { einstZurueck(); };
+$('b-einst').onclick = function () { einstVon = 'liste'; einstSeite(); };
 
 // ---------------------------------------------------------------- Dialog
 function dlgOffen() { return $('dlg').classList.contains('an'); }
@@ -1053,7 +1060,7 @@ $('a-verl').onclick = function () {
   dialog('Verlängern: ' + e.titel.replace(/\s*\(Teil \d+\)$/, ''),
     '<div class="leise">Planende ' + hm(ende) + '</div>' +
     wahlHtml('min', [['5', '+5 min'], ['10', '+10 min'], ['15', '+15 min'], ['bis', 'bis Uhrzeit']], '10') +
-    '<input id="dl-bis" type="text" placeholder="hh:mm" value="' + hm(ende + 30 * 60000) + '">' +
+    '<input id="dl-bis" type="text" data-uhr inputmode="numeric" placeholder="hh:mm" value="' + hm(ende + 30 * 60000) + '">' +
     '<label>Wirkung</label>' + wahlHtml('modus', [['schieben', 'Nachfolgende verschieben'], ['kuerzen', 'Nur nächstes kürzen']], 'schieben'),
     [{ text: 'Abbrechen' }, { text: 'Übernehmen', haupt: true, fn: function () {
       var w = wahlWert('min'), min = +w, modus = wahlWert('modus');
@@ -1896,7 +1903,7 @@ function letzterSlot() {
 function feld(f, wert, vorschlag, klasse, extra) {
   return '<input data-f="' + f + '" class="' + (klasse || '') + '" value="' + esc(wert) + '"' +
     (vorschlag ? ' placeholder="' + esc(vorschlag) + '" data-v="' + esc(vorschlag) + '"' : '') +
-    (f === 'von' || f === 'bis' ? ' inputmode="numeric"' : '') + ' autocomplete="off"' + (extra || '') + '>';
+    (f === 'von' || f === 'bis' ? ' data-uhr inputmode="numeric"' : '') + ' autocomplete="off"' + (extra || '') + '>';
 }
 function vorschlagsZeile() {
   var b = letzterSlot(), n = monatNeu;
@@ -2052,6 +2059,36 @@ mt.addEventListener('click', function (ev) {
     slotVon = 'monat'; slotOeffnen(+p.dataset.i);
   }
 });
+
+// ---------------------------------------------------------------- Uhrzeitfelder und Einstellungen (2.0.17)
+/** Uhrzeit als hh:mm (Doppelpunkt ergänzt); ungültig oder leer -> unverändert */
+function zeitText(v) { var m = zeitEingabe(v); return m === null || m < 0 ? String(v || '').trim() : L.pad(Math.floor(m / 60)) + ':' + L.pad(m % 60); }
+function uhrFeld(e) { return e && e.tagName === 'INPUT' && e.hasAttribute('data-uhr') && !e.readOnly; }
+document.addEventListener('input', function (ev) {                  // vier Ziffern: sofort 13:00
+  var e = ev.target; if (!uhrFeld(e)) return;
+  if (/^\d{4}$/.test(e.value) && zeitEingabe(e.value) >= 0) { e.value = zeitText(e.value); try { e.setSelectionRange(5, 5); } catch (x) { } }
+}, true);
+function uhrNormal(ev) {                                             // beim Verlassen: 830 -> 08:30, 8 -> 08:00
+  var e = ev.target; if (!uhrFeld(e)) return;
+  var t = zeitText(e.value); if (t !== e.value) { e.value = t; log('uhr | ' + (e.id || e.dataset.f) + ' -> ' + t); }
+}
+document.addEventListener('change', uhrNormal, true);                // Capture: vor den Handlern der Seite
+document.addEventListener('focusout', uhrNormal, true);
+var einstVon = '';
+['edit', 'audit', 'kdok', 'tag', 'monat', 'slot'].forEach(function (n) {
+  var k = $('s-' + n).querySelector('.kopf'), b = document.createElement('button');
+  b.className = 'zahnrad'; b.title = 'Einstellungen'; b.textContent = '⚙';
+  b.onclick = function () { einstVon = ansicht; einstSeite(); };
+  k.appendChild(b);
+});
+function einstZurueck() {
+  var n = einstVon; einstVon = '';
+  if (n === 'audit' && aktuell.id && auditById(aktuell.id)) { oeffneAudit(aktuell.id); return; }
+  if (n === 'tag') { tagAuswahl(); tagAnzeigen(); zeige('tag'); return; }
+  if (n === 'monat') { monatZeigen(); return; }
+  if (n === 'edit' || n === 'kdok' || n === 'slot') { zeige(n); return; }
+  zeigeListe();
+}
 
 // ---------------------------------------------------------------- Datenaustausch .apdat (A6)
 var M = AP.minuten;

@@ -1,6 +1,6 @@
 /*
  * Auditplan – Sprache DE/EN
- * Version: 2.0.16 (2026-11-27)
+ * Version: 2.0.17 (2026-11-27)
  * Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
  *
  * Die Oberfläche ist auf Deutsch geschrieben. Bei Sprache EN übersetzt dieses Modul
@@ -19,11 +19,12 @@
  *   2.0.11 (2026-11-27) Seite Timeslot, Darstellung Dunkel/Hell.
  *   2.0.15 (2026-11-27) Arbeitstag mit Listen und Fenstern für Aufträge, Positionen, Timeslots.
  *   2.0.16 (2026-11-27) Seite Monat (Task 400-02): Tabelle, Suche, Meldungen, Monatsnamen.
+ *   2.0.17 (2026-11-27) Versionsstand mit index.html 2.0.17 (keine neuen Texte).
  */
 (function (global) {
   'use strict';
 
-  var VERSION = '2.0.16';
+  var VERSION = '2.0.17';
   var SCHLUESSEL = 'auditplan.sprache';
 
   // Ganze Texte (nach Trim verglichen)
