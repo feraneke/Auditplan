@@ -1,6 +1,6 @@
 /*
  * Auditplan – Sprache DE/EN
- * Version: 2.0.25 (2026-11-27)
+ * Version: 2.0.26 (2026-11-27)
  * Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
  *
  * Die Oberfläche ist auf Deutsch geschrieben. Bei Sprache EN übersetzt dieses Modul
@@ -28,11 +28,12 @@
  *   2.0.23 (2026-11-27) Kopf Arbeitstag (Monat, Audits), Knopf ▶ Audit.
  *   2.0.24 (2026-11-27) Hinweistexte ohne Knopf +.
  *   2.0.25 (2026-11-27) Rückfrage beim Beenden laufender Timeslots.
+ *   2.0.26 (2026-11-27) Audits im Editor und in den Einstellungen.
  */
 (function (global) {
   'use strict';
 
-  var VERSION = '2.0.25';
+  var VERSION = '2.0.26';
   var SCHLUESSEL = 'auditplan.sprache';
 
   // Ganze Texte (nach Trim verglichen)
@@ -47,7 +48,9 @@
     'Ende fehlt – laufen darf nur ein Timeslot von heute': 'End missing – only a time slot of today may be running',
     'Beginn liegt in der Zukunft': 'Start lies in the future', 'Timeslot gibt es schon': 'Time slot already exists',
     'Beginn vor dem laufenden Timeslot': 'Start before the running time slot', 'Beginn fehlt': 'Start missing', 'Tag als TT.MM.': 'Day as DD.MM.',
-    'Monat': 'Month', 'Audits': 'Audits', '▶ Audit': '▶ Audit',
+    'Monat': 'Month', 'Audits': 'Audits', 'Audits bearbeiten': 'Edit audits', 'Noch kein Audit. + Neues Audit oder Import .txt in den Einstellungen.': 'No audit yet. + New audit, or Import .txt in the settings.', 'Audit-Ansicht': 'Audit view',
+    'Tippen = in den Editor laden, ⋮ = Audit-Ansicht, Export, Löschen.': 'Tap = load into the editor, ⋮ = audit view, export, delete.',
+    'Import: Arbeitsstand der 400.dotm (Auditzeiten.txt).': 'Import: working state of the 400.dotm (Auditzeiten.txt).', '▶ Audit': '▶ Audit',
     'Timeslot anlegen': 'Create time slot', 'Plan': 'Plan', 'Plan vor Beginn': 'Plan before start',
     'Ende liegt in der Zukunft – geplantes Ende in die Spalte Plan': 'End lies in the future – enter a planned end in the Plan column',
     'Graue Werte sind Vorschläge – Antippen übernimmt sie. In der letzten Zeile entsteht ein neuer Timeslot, sobald Auftrag und Beginn eingetragen sind und du die Zeile verlässt; Ende leer = läuft. ⇄ wechselt, › öffnet den Timeslot. Buchen und Ignorieren nur am PC.':

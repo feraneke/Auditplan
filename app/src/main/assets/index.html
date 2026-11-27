@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   Auditplan – Oberfläche
-  Version: 2.0.25 (2026-11-27)
+  Version: 2.0.26 (2026-11-27)
   Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
   Läuft in der Android-Hülle (window.AndroidBridge) und zum Ausprobieren auch im Browser.
   Versionshistorie:
@@ -116,6 +116,10 @@
     2.0.25 (2026-11-27) Laufende Timeslots enden beim Anlegen eines neuen nur nach Rückfrage (Festlegung Frank
                        2026-11-27): Abbrechen = beide laufen weiter, die Zeit zählt doppelt (z. B. Arbeit im Zug).
                        Mehrere laufende Timeslots erlaubt; Uhr, Timer und Signale folgen dem zuletzt begonnenen.
+    2.0.26 (2026-11-27) Seite Audits entfällt (Festlegungen Frank 2026-11-27): Liste der Audits mit + Neues Audit
+                       steht im Editor über Kopfdaten/Kapitel/Zeitplan (Tippen = laden, ⋮ = Audit-Ansicht,
+                       Export, Löschen); Einstellungen mit Abschnitt Audits (Audits bearbeiten, Import .txt);
+                       🔒 Sperren auf jeder Seite. Kopf Arbeitstag: Monat · Arbeitstag · 🔒 · ⚙.
 -->
 <html lang="de">
 <head>
@@ -253,7 +257,6 @@ textarea{min-height:110px}
 .wahl input{width:20px;height:20px}
 #s-pin .karte{max-width:380px;margin:60px auto}
 #s-pin input{font-size:26px;letter-spacing:6px;text-align:center}
-#s-liste .reihe button{flex:1;white-space:nowrap;padding:10px 6px;min-width:0;overflow:hidden;text-overflow:ellipsis}
 /* 2.0.11: Darstellung Hell */
 html[data-thema=hell]{--bg:#f3f5f7;--karte:#ffffff;--karte2:#e8ecf0;--linie:#d0d7de;--text:#17202a;--leise:#5d6873;
   --akzent:#0b8ea3;--warn:#b97d0c;--rot:#cf3a31;--gruen:#2a9a57}
@@ -290,6 +293,7 @@ html[data-thema=hell] #toast{background:#2b3540}
 .mz .wx{display:block;margin:2px 0 0 auto;padding:1px 6px;font-size:13px;line-height:1.3;background:var(--akzent);color:#062a30;border-radius:6px}
 html[data-thema=hell] .mz .wx{color:#fff}
 .kopf .zahnrad{flex:0 0 auto;padding:8px 10px}
+.zeile.gewaehlt{outline:2px solid var(--akzent)}
 .mz .ax{display:inline-block;margin:2px 0 4px;padding:2px 10px;font-size:12px;background:var(--akzent);color:#062a30;border-radius:6px;font-weight:600}
 html[data-thema=hell] .mz .ax{color:#fff}
 #s-tag .kopf button{padding:8px 10px}
@@ -310,23 +314,12 @@ html[data-thema=hell] .mz .ax{color:#fff}
   </div>
 </div>
 
-<!-- ================= Auditliste ================= -->
-<div class="screen" id="s-liste">
-  <div class="kopf"><button id="l-zurueck">←</button><h1>Audits</h1><button id="b-sperren" title="Sperren">🔒</button><button id="b-einst" title="Einstellungen">⚙</button></div>
-  <div class="reihe">
-    <button class="haupt" id="z-tag">Arbeitstag</button>
-    <button class="haupt" id="b-neu">+ Neues Audit</button>
-    <button id="b-import">Import .txt</button>
-  </div>
-  <div class="leise" id="z-tag-info" style="margin:4px 2px 0"></div>
-  <input type="file" id="f-import" accept=".txt,text/plain" style="display:none">
-  <div id="liste" class="liste-audit"></div>
-  <div class="leise" style="margin-top:10px">Import: Arbeitsstand der 400.dotm (Auditzeiten.txt). Tippen = öffnen, ⋮ = bearbeiten, exportieren, löschen.</div>
-</div>
-
 <!-- ================= Neu / Bearbeiten ================= -->
 <div class="screen" id="s-edit">
   <div class="kopf"><button id="e-zurueck">←</button><h1 id="e-titel">Neues Audit</h1></div>
+  <div class="reihe" style="margin-bottom:6px"><button class="haupt" id="b-neu">+ Neues Audit</button></div>
+  <div id="liste" class="liste-audit"></div>
+  <div class="leise" style="margin:2px 2px 10px">Tippen = in den Editor laden, ⋮ = Audit-Ansicht, Export, Löschen.</div>
   <div class="segmente" id="e-reiter" style="margin-bottom:8px">
     <button data-r="kopf">Kopfdaten</button><button data-r="kapitel">Kapitel</button><button data-r="plan">Zeitplan</button></div>
   <div class="karte" id="e-s-kopf">
@@ -400,7 +393,7 @@ html[data-thema=hell] .mz .ax{color:#fff}
 
 <!-- ================= Arbeitstag ================= -->
 <div class="screen" id="s-tag">
-  <div class="kopf"><button id="t-zurueck">Monat</button><h1>Arbeitstag</h1><button id="t-audits">Audits</button></div>
+  <div class="kopf"><button id="t-zurueck">Monat</button><h1>Arbeitstag</h1></div>
   <div class="uhren">
     <div class="zifferblatt"><svg id="t-uhr" viewBox="0 0 200 200"></svg>
       <div class="unter"><strong id="t-digital">--:--</strong> · <span id="t-datum"></span></div></div>
@@ -493,6 +486,12 @@ html[data-thema=hell] .mz .ax{color:#fff}
     <div class="knopfreihe"><button id="b-doku">Vorgaben je Unterpunkt bearbeiten</button></div>
   </div>
   <div class="karte">
+    <strong>Audits</strong>
+    <div class="knopfreihe"><button class="haupt" id="b-audits">Audits bearbeiten</button><button id="b-import">Import .txt</button></div>
+    <input type="file" id="f-import" accept=".txt,text/plain" style="display:none">
+    <div class="leise" style="margin-top:8px">Import: Arbeitsstand der 400.dotm (Auditzeiten.txt).</div>
+  </div>
+  <div class="karte">
     <strong>Datenaustausch mit dem PC</strong>
     <div class="leise" id="x-info"></div>
     <div class="knopfreihe"><button class="haupt" id="x-export">Export .apdat</button><button id="x-teilen">Teilen</button><button id="x-import">Import .apdat</button></div>
@@ -525,7 +524,7 @@ html[data-thema=hell] .mz .ax{color:#fff}
 var L = window.Logik, AP = window.Apdat;
 var BR = window.AndroidBridge || null;
 var ALT = 'auditplan.daten', TRESOR = 'auditplan.tresor', SPERRE = 'auditplan.sperre';
-var OBERFLAECHE = '2.0.25';                                           // 2.0.16: Version dieser Datei, angezeigt in den Einstellungen
+var OBERFLAECHE = '2.0.26';                                           // 2.0.16: Version dieser Datei, angezeigt in den Einstellungen
 var KUERZEL_RE = /^(K-[A-Z0-9]{6}\/A-[A-Z0-9]{4}|NEU-\d+)$/;
 
 // ---------------------------------------------------------------- Grundfunktionen
@@ -652,7 +651,6 @@ function sperren() {
   daten = null; schl = null; pinMem = null; nurAudit = false;
   pinZeigen('entsperren');
 }
-$('b-sperren').onclick = sperren;
 var versteckt = 0, nurAudit = false;
 document.addEventListener('visibilitychange', function () { if (document.hidden) versteckt = Date.now(); });
 function zuLange() { return daten && versteckt && Date.now() - versteckt > (+daten.einst.sperreMin || 15) * 60000; }
@@ -660,7 +658,7 @@ function zuLange() { return daten && versteckt && Date.now() - versteckt > (+dat
 // ---------------------------------------------------------------- Navigation
 var ansicht = '';
 function zeigeRoh(n) {
-  ['pin', 'liste', 'edit', 'audit', 'doku', 'einst', 'kdok', 'tag', 'slot', 'monat'].forEach(function (x) { $('s-' + x).classList.toggle('an', x === n); });
+  ['pin', 'edit', 'audit', 'doku', 'einst', 'kdok', 'tag', 'slot', 'monat'].forEach(function (x) { $('s-' + x).classList.toggle('an', x === n); });
   ansicht = n; window.scrollTo(0, 0);
 }
 function zeige(n) {
@@ -675,15 +673,15 @@ function zeige(n) {
 function zurueck() {
   if (dlgOffen()) { dlgZu(); return true; }
   if (ansicht === 'tag' || ansicht === 'pin') return false;          // 2.0.23: Arbeitstag ist die Startseite
-  if (ansicht === 'liste') { tagOeffnen(); return true; }
   if (ansicht === 'monat') { tagZeigen(); return true; }
-  if (ansicht === 'audit') { if (auditVon === 'monat') monatZeigen(); else if (auditVon === 'liste') zeigeListe(); else tagZeigen(); return true; }
+  if (ansicht === 'audit') { if (auditVon === 'monat') monatZeigen(); else if (auditVon === 'edit') zeige('edit'); else tagZeigen(); return true; }
+  if (ansicht === 'edit' && !edit.vonAudit) { if (editVon === 'einst') einstSeite(); else tagZeigen(); return true; }   // 2.0.26
   if (ansicht === 'edit' && edit.vonAudit) { oeffneAudit(edit.vonAudit); return true; }
   if (ansicht === 'kdok') { kdokZurueck(); return true; }
   if (ansicht === 'doku') { einstSeite(); return true; }
   if (ansicht === 'slot') { slotZurueck(); return true; }
   if (ansicht === 'einst') { einstZurueck(); return true; }        // 2.0.17: zurück zur Seite vor den Einstellungen
-  zeigeListe(); return true;
+  tagZeigen(); return true;                                          // 2.0.26: Startseite ist der Arbeitstag
 }
 function appWiederDa() {
   if (!daten) return;
@@ -694,13 +692,12 @@ function appWiederDa() {
   }
   versteckt = 0;
   if (ansicht === 'audit') auditAnzeigen(true);
-  if (ansicht === 'liste') zeigeListe();
   if (ansicht === 'tag') tagAnzeigen();
   if (ansicht === 'monat') monatAnzeigen();
 }
 function einstSeite() { einstZeigen(); zeige('einst'); }
 $('n-zurueck').onclick = function () { einstZurueck(); };
-$('b-einst').onclick = function () { einstVon = 'liste'; einstSeite(); };
+
 
 // ---------------------------------------------------------------- Dialog
 function dlgOffen() { return $('dlg').classList.contains('an'); }
@@ -728,27 +725,29 @@ function laufend() {
   if (BR) { try { var s = BR.auditStatus(); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
   return browserLauf ? browserLauf.plan : null;
 }
+/** 2.0.26: Liste der Audits steht im Editor über Kopfdaten/Kapitel/Zeitplan (Festlegung Frank 2026-11-27);
+    außerhalb des Editors öffnet zeigeListe den Editor mit leerem Formular „Neues Audit“ */
 function zeigeListe() {
   if (!daten) { pinZeigen('entsperren'); return; }
-  auditVon = 'liste';                                                 // 2.0.23: Audits aus der Liste kehren zur Liste zurück
+  listeZeichnen();
+  if (ansicht !== 'edit') neuesAudit();
+}
+function listeZeichnen() {
   var lauf = laufend();
   var html = '';
   daten.audits.filter(function (a) { return !a.geloescht; })
     .sort(function (a, b) { return (b.kopf.start || '').localeCompare(a.kopf.start || ''); }).forEach(function (a) {
       var tage = a.plan.tage.length || (a.plan.zeilen.length ? a.plan.zeilen[a.plan.zeilen.length - 1].tag : 0);
-      html += '<div class="zeile" data-a="oeffnen" data-id="' + a.id + '"><div class="txt"><b>' + esc(kuerzelKunde(a) || a.name) + '</b> <span>· ' +
+      html += '<div class="zeile' + (edit && edit.audit === a ? ' gewaehlt' : '') + '" data-a="oeffnen" data-id="' + a.id + '"><div class="txt"><b>' + esc(kuerzelKunde(a) || a.name) + '</b> <span>· ' +
         esc(a.kopf.typ || '') + ' · ' + esc(L.isoNachDe(a.kopf.start)) + ' · ' + tage + ' T</span>' +
         (lauf && lauf.id === a.id ? '<span class="badge">läuft</span>' : '') + '</div>' +
         '<button class="mehr" data-a="menue" data-id="' + a.id + '" title="Menü">⋮</button></div>' +
         '<div class="aktionen" id="m-' + a.id + '" style="display:none">' +
-        '<button data-a="bearbeiten" data-id="' + a.id + '">Bearbeiten</button>' +
+        '<button data-a="ansicht" data-id="' + a.id + '">Audit-Ansicht</button>' +
         '<button data-a="export" data-id="' + a.id + '">Export .txt</button>' +
         '<button class="gefahr" data-a="loeschen" data-id="' + a.id + '">Löschen</button></div>';
     });
-  $('liste').innerHTML = html || '<div class="karte leise">Noch kein Audit. Lege eins an oder importiere Auditzeiten.txt.</div>';
-  var s = laufenderSlot();
-  $('z-tag-info').textContent = 'Arbeitstag ' + (s ? '· läuft seit ' + hm(s.start) + ' · ' + s.auftrag + ' / ' + s.position : '· ' + L.stunden(tagSumme(heuteIso()) / 3600000) + ' h heute');
-  zeige('liste');
+  $('liste').innerHTML = html || '<div class="karte leise">Noch kein Audit. + Neues Audit oder Import .txt in den Einstellungen.</div>';
 }
 $('liste').addEventListener('click', function (ev) {
   var b = ev.target.closest('[data-a]'); if (!b) return;
@@ -757,20 +756,19 @@ $('liste').addEventListener('click', function (ev) {
     var m = $('m-' + a.id), offen = m.style.display !== 'none';
     [].forEach.call(document.querySelectorAll('.aktionen'), function (x) { x.style.display = 'none'; });
     m.style.display = offen ? 'none' : 'flex';
-  } else if (b.dataset.a === 'oeffnen') oeffneAudit(a.id);
-  else if (b.dataset.a === 'bearbeiten') bearbeiten(a);
+  } else if (b.dataset.a === 'oeffnen') bearbeiten(a);                // 2.0.26: Tippen lädt in den Editor
+  else if (b.dataset.a === 'ansicht') { auditVon = 'edit'; oeffneAudit(a.id); }
   else if (b.dataset.a === 'export') exportieren(a);
   else if (b.dataset.a === 'loeschen') {
     if (!confirm('„' + a.name + '“ löschen?')) return;
     var l = laufend(); if (l && l.id === a.id) stoppen();
     a.geloescht = true; a.geaendert = jetztStempel();       // Löschmarke für den Abgleich
     (a.doks || []).forEach(function (d) { d.geloescht = true; d.geaendert = a.geaendert; });
-    sichern(); zeigeListe();
+    sichern(); if (edit.audit === a) neuesAudit(); else listeZeichnen();
   }
 });
-$('z-tag').onclick = function () { tagOeffnen(); };             // 2.0.23
-$('l-zurueck').onclick = function () { tagOeffnen(); };
-$('t-audits').onclick = function () { zeigeListe(); };
+var editVon = 'tag';                                                 // 2.0.26: Rückweg aus dem Editor
+$('b-audits').onclick = function () { editVon = 'einst'; listeZeichnen(); neuesAudit(); };
 $('b-neu').onclick = function () { neuesAudit(); };
 $('b-import').onclick = function () { $('f-import').value = ''; $('f-import').click(); };
 $('f-import').onchange = function () {
@@ -790,7 +788,7 @@ $('f-import').onchange = function () {
       }
       a.id = AP.kennung('AP'); a.original = text; a.doks = []; a.ist = []; a.abw = [];
       a.name = a.kopf.kunde; a.geaendert = a.planGeaendert = jetztStempel();
-      daten.audits.push(a); sichern(); zeigeListe();
+      daten.audits.push(a); sichern(); editVon = 'einst'; listeZeichnen(); neuesAudit();
       toast('Importiert: ' + a.name + (a.hinweis ? ' – ' + a.hinweis : ''));
     } catch (e) { alert('Import nicht möglich:\n' + e.message); log('import | ' + e); }
   };
@@ -844,7 +842,7 @@ function neuesAudit() {
   $('e-kunde').value = ''; $('e-zeit').value = '16'; $('e-typ').value = '1. ÜA'; $('e-start').value = heuteIso();
   $('e-startzeit').value = '09:00'; $('e-beginn').value = '09:00'; $('e-ende').value = '17:30'; $('e-pause').value = '0,5';
   $('e-nodev').checked = false; $('e-excl').value = '';
-  vorschlagRechnen(); editReiter('kopf'); zeige('edit');
+  vorschlagRechnen(); editReiter('kopf'); listeZeichnen(); zeige('edit');
 }
 function bearbeiten(a, vonAudit) {
   if (a.quelle === 'import' && !a.posten) { alert('Die importierte Datei hat keinen [DATEN]-Block. Bitte in der 400.dotm ändern und neu importieren.'); return; }
@@ -860,7 +858,7 @@ function bearbeiten(a, vonAudit) {
   $('e-beginn').value = k.tagBeginn || '09:00'; $('e-ende').value = k.tagEnde || '17:30'; $('e-pause').value = k.pause || '0,5';
   $('e-nodev').checked = !!k.noDev; $('e-excl').value = k.excl || '';
   $('e-meldung').textContent = '';
-  postenZeigen(); planZeigen(); editReiter('kopf'); zeige('edit');
+  postenZeigen(); planZeigen(); editReiter('kopf'); listeZeichnen(); zeige('edit');
 }
 function kopfAusFormular() {
   return { kunde: $('e-kunde').value.trim().toUpperCase(), auditzeit: $('e-zeit').value.trim(), typ: $('e-typ').value, noDev: $('e-nodev').checked,
@@ -1734,7 +1732,7 @@ function monatOeffnen() {
   monatZeigen();
 }
 function monatZeigen() { monatAnzeigen(); zeige('monat'); }
-var auditVon = 'liste';                                              // 2.0.23: Rückweg aus der Audit-Ansicht
+var auditVon = 'tag';                                              // 2.0.23: Rückweg aus der Audit-Ansicht
 /** Tagesansicht mit dem gewählten Tag wieder zeigen */
 function tagZeigen() { tagSig = ''; tagAnzeigen(); zeige('tag'); }
 /** neuestes Audit zu einem Auftrag (Teil nach „/“ im Audit-Kürzel) */
@@ -2039,8 +2037,12 @@ function uhrNormal(ev) {                                             // beim Ver
 document.addEventListener('change', uhrNormal, true);                // Capture: vor den Handlern der Seite
 document.addEventListener('focusout', uhrNormal, true);
 var einstVon = '';
-['edit', 'audit', 'kdok', 'tag', 'monat', 'slot'].forEach(function (n) {
-  var k = $('s-' + n).querySelector('.kopf'), b = document.createElement('button');
+['edit', 'audit', 'kdok', 'tag', 'monat', 'slot', 'einst', 'doku'].forEach(function (n) {
+  var k = $('s-' + n).querySelector('.kopf'), z = document.createElement('button');   // 2.0.26: 🔒 auf jeder Seite (Festlegung Frank)
+  z.className = 'zahnrad schloss'; z.title = 'Sperren'; z.textContent = '🔒'; z.onclick = sperren;
+  k.appendChild(z);
+  if (n === 'einst' || n === 'doku') return;
+  var b = document.createElement('button');
   b.className = 'zahnrad'; b.title = 'Einstellungen'; b.textContent = '⚙';
   b.onclick = function () { einstVon = ansicht; einstSeite(); };
   k.appendChild(b);
@@ -2051,8 +2053,7 @@ function einstZurueck() {
   if (n === 'tag') { tagTabelle(); tagAnzeigen(); zeige('tag'); return; }
   if (n === 'monat') { monatZeigen(); return; }
   if (n === 'edit' || n === 'kdok' || n === 'slot') { zeige(n); return; }
-  if (n === 'liste') { zeigeListe(); return; }
-  tagOeffnen();
+  tagZeigen();
 }
 
 // ---------------------------------------------------------------- Datenaustausch .apdat (A6)
