@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   Auditplan – Oberfläche
-  Version: 2.0.28 (2026-11-27)
+  Version: 2.0.29 (2026-11-27)
   Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
   Läuft in der Android-Hülle (window.AndroidBridge) und zum Ausprobieren auch im Browser.
   Versionshistorie:
@@ -127,6 +127,8 @@
                        Tagesansicht). Kopf Arbeitstag: Arbeitstag links; rechts von außen 🔒, ⚙, Audits (Editor mit
                        Liste der Audits). Einstellungen, Abschnitt Audits: nur noch Import .txt. Suche entfällt mit
                        der Seite Monat.
+    2.0.29 (2026-11-27) Tagesansicht: Pfeile ◀ ▶ neben dem Datum schalten einen Tag zurück/vor; Festhalten blättert
+                       weiter, immer schneller (Wunsch Frank 2026-11-27). Tagessumme unter der Datumszeile.
 -->
 <html lang="de">
 <head>
@@ -294,6 +296,9 @@ html[data-thema=hell] #toast{background:#2b3540}
 .mz .wx{display:block;margin:2px 0 0 auto;padding:1px 6px;font-size:13px;line-height:1.3;background:var(--akzent);color:#062a30;border-radius:6px}
 html[data-thema=hell] .mz .wx{color:#fff}
 .kopf .zahnrad,.kopf .kopfknopf{flex:0 0 auto;padding:8px 10px}
+.datumzeile{display:flex;gap:8px;align-items:stretch}
+.datumzeile input{flex:1;min-width:0;text-align:center}
+.tagpfeil{flex:0 0 52px;font-size:20px;padding:6px 0;user-select:none;-webkit-user-select:none;touch-action:manipulation}
 .zeile.gewaehlt{outline:2px solid var(--akzent)}
 .mz .ax{display:inline-block;margin:2px 0 4px;padding:2px 10px;font-size:12px;background:var(--akzent);color:#062a30;border-radius:6px;font-weight:600}
 html[data-thema=hell] .mz .ax{color:#fff}
@@ -401,7 +406,8 @@ html[data-thema=hell] .mz .ax{color:#fff}
       <div class="unter"><strong id="t-dauer">–</strong> · <span id="t-bezug">kein Timeslot</span></div></div>
   </div>
   <div class="karte">
-    <div class="reihe"><strong style="flex:3" id="t-summe">Heute</strong><input id="t-datumwahl" type="date" style="flex:2"></div>
+    <div class="datumzeile"><button id="t-tag-zur" class="tagpfeil" title="Tag zurück">◀</button><input id="t-datumwahl" type="date"><button id="t-tag-vor" class="tagpfeil" title="Tag vor">▶</button></div>
+    <strong id="t-summe" style="display:block;margin-top:8px">Heute</strong>
   </div>
   <div id="t-slots"></div>
   <div class="leise" style="margin:6px 2px 0">Graue Werte sind Vorschläge – Antippen übernimmt sie. In der letzten Zeile entsteht ein neuer Timeslot, sobald Auftrag und Beginn eingetragen sind und du die Zeile verlässt; Ende leer = läuft. ⇄ wechselt, › öffnet den Timeslot. Buchen und Ignorieren nur am PC.</div>
@@ -515,7 +521,7 @@ html[data-thema=hell] .mz .ax{color:#fff}
 var L = window.Logik, AP = window.Apdat;
 var BR = window.AndroidBridge || null;
 var ALT = 'auditplan.daten', TRESOR = 'auditplan.tresor', SPERRE = 'auditplan.sperre';
-var OBERFLAECHE = '2.0.28';                                           // 2.0.16: Version dieser Datei, angezeigt in den Einstellungen
+var OBERFLAECHE = '2.0.29';                                           // 2.0.16: Version dieser Datei, angezeigt in den Einstellungen
 
 // ---------------------------------------------------------------- Grundfunktionen
 function $(id) { return document.getElementById(id); }
@@ -1571,6 +1577,23 @@ function tagOeffnen() {
   tagAnzeigen(); zeige('tag');
 }
 $('t-datumwahl').onchange = function () { tagWahl = this.value || heuteIso(); tagAnzeigen(); };
+/** 2.0.29: Tag vor/zurück mit Pfeilen; Festhalten blättert, immer schneller (Wunsch Frank 2026-11-27) */
+function tagSchritt(d) {
+  var t = new Date((tagWahl || heuteIso()) + 'T12:00:00'); t.setDate(t.getDate() + d);
+  tagWahl = isoVon(t.getTime()); $('t-datumwahl').value = tagWahl; tagAnzeigen();
+}
+var tagBlaettern = null;
+function tagBlaetternStopp() { if (tagBlaettern) { clearTimeout(tagBlaettern); tagBlaettern = null; } }
+[['t-tag-zur', -1], ['t-tag-vor', 1]].forEach(function (x) {
+  var b = $(x[0]);
+  b.addEventListener('pointerdown', function (ev) {
+    ev.preventDefault(); tagBlaetternStopp(); tagSchritt(x[1]);
+    var takt = 400, n = 0;
+    (function weiter() { tagBlaettern = setTimeout(function () { tagSchritt(x[1]); n++; takt = n < 5 ? 180 : n < 15 ? 100 : 50; weiter(); }, takt); })();
+  });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (e) { b.addEventListener(e, tagBlaetternStopp); });
+  b.addEventListener('contextmenu', function (ev) { ev.preventDefault(); });
+});
 function orderVon(au) { return daten.orders.filter(function (o) { return o.auftrag === au && !o.geloescht; })[0] || null; }
 function posVon(au, po) { return daten.pos.filter(function (x) { return x.auftrag === au && x.position === po && !x.geloescht; })[0] || null; }
 /** auf dem Handy eingetippten Auftrag bzw. Position merken (Timeslot-Seite) */
