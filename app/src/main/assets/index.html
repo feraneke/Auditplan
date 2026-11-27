@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   Auditplan – Oberfläche
-  Version: 2.0.6 (2026-11-27)
+  Version: 2.0.7 (2026-11-27)
   Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
   Läuft in der Android-Hülle (window.AndroidBridge) und zum Ausprobieren auch im Browser.
   Versionshistorie:
@@ -41,6 +41,9 @@
                        zählt rückwärts, danach rot „+ Überzug“; Uhr zeigt das Plan-Segment;
                        Gongs der Prozent- und Minuten-vor-Ende-Regeln gelten auch für
                        Arbeitstag-Slots mit Planzeit (Entscheidung 5, Doc Format v3).
+    2.0.7 (2026-11-27) Uhren (Wunsch Frank 2026-11-27): beide Zifferblätter immer gleich groß
+                       (Spalten minmax(0,1fr), langer Text kürzt statt zu verbreitern). Querformat
+                       auf Arbeitstag und Audit: Uhren links untereinander, Text rechts.
 -->
 <html lang="de">
 <head>
@@ -89,8 +92,16 @@ label{display:block;font-size:13px;color:var(--leise);margin:8px 0 4px}
 .tagbalken.rot{background:#4a2326;color:#ffd2cf}
 .warn{color:var(--warn);font-size:14px}
 /* Audit */
-.uhren{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:4px 0}
-.uhren .zifferblatt{background:var(--karte);border-radius:var(--radius);padding:8px 8px 10px;text-align:center}
+.uhren{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin:4px 0}
+.uhren .zifferblatt{background:var(--karte);border-radius:var(--radius);padding:8px 8px 10px;text-align:center;min-width:0}
+/* 2.0.7: Querformat - Uhren links untereinander, Text rechts */
+@media (orientation:landscape){
+  #s-tag.an,#s-audit.an{display:grid;grid-template-columns:minmax(120px,min(calc((100vh - 150px) / 2),320px)) minmax(0,1fr);
+    column-gap:12px;align-items:start;max-width:none;padding-bottom:12px}
+  #s-tag>*,#s-audit>*{grid-column:2;min-width:0}
+  #s-tag>.kopf,#s-audit>.kopf{grid-column:1 / -1}
+  #s-tag>.uhren,#s-audit>.uhren{grid-column:1;grid-row:2 / span 30;grid-template-columns:minmax(0,1fr);position:sticky;top:0;margin:0}
+}
 .uhren svg{width:100%;height:auto;display:block}
 .uhren .unter{font-size:13px;color:var(--leise);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .uhren .unter strong{color:var(--text);font-size:15px;font-variant-numeric:tabular-nums}
