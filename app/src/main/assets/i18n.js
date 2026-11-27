@@ -1,6 +1,6 @@
 /*
  * Auditplan – Sprache DE/EN
- * Version: 2.0.23 (2026-11-27)
+ * Version: 2.0.24 (2026-11-27)
  * Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
  *
  * Die Oberfläche ist auf Deutsch geschrieben. Bei Sprache EN übersetzt dieses Modul
@@ -26,11 +26,12 @@
  *   2.0.21 (2026-11-27) Versionsstand mit index.html 2.0.21 (keine neuen Texte).
  *   2.0.22 (2026-11-27) Spalte Plan, Meldungen zu Plan und Ende in der Zukunft.
  *   2.0.23 (2026-11-27) Kopf Arbeitstag (Monat, Audits), Knopf ▶ Audit.
+ *   2.0.24 (2026-11-27) Hinweistexte ohne Knopf +.
  */
 (function (global) {
   'use strict';
 
-  var VERSION = '2.0.23';
+  var VERSION = '2.0.24';
   var SCHLUESSEL = 'auditplan.sprache';
 
   // Ganze Texte (nach Trim verglichen)
@@ -38,9 +39,9 @@
     // 2.0.16: Seite Monat
     'Heute ›': 'Today ›', 'Tag': 'Day', 'Auftrag / Position': 'Order / position', 'Dauer': 'Duration', 'ohne Countdown': 'no countdown',
     'Suchen: Auftrag, Position, Bemerkung': 'Search: order, position, remarks', 'Keine Timeslots.': 'No time slots.', 'Keine Treffer.': 'No matches.',
-    'Graue Werte sind Vorschläge – Antippen übernimmt sie. Oberste Zeile: + legt den Timeslot an, Ende leer = läuft. ⇄ beendet den laufenden Timeslot jetzt und beginnt einen neuen. Tipp auf den Tag öffnet die Tagesansicht mit den Uhren, › den Timeslot.':
-      'Grey values are suggestions – tap to take them. Top row: + creates the time slot, empty end = running. ⇄ ends the running time slot now and starts a new one. Tap the day to open the day view with the clocks, › opens the time slot.',
-    'Timeslot beendet – neuen Auftrag eintragen, dann +': 'Time slot ended – enter the new order, then +',
+    'Graue Werte sind Vorschläge – Antippen übernimmt sie. In der letzten Zeile von heute entsteht ein neuer Timeslot, sobald Auftrag und Beginn eingetragen sind und du die Zeile verlässt; Ende leer = läuft. ⇄ wechselt, Tipp auf den Tag öffnet die Tagesansicht mit den Uhren, › den Timeslot.':
+      'Grey values are suggestions – tap to take them. In the last row of today a new time slot is created as soon as order and start are entered and you leave the row; empty end = running. ⇄ switches, tap the day to open the day view with the clocks, › opens the time slot.',
+    'Timeslot beendet – neuen Auftrag eintragen': 'Time slot ended – enter the new order',
     'Timeslot angelegt': 'Time slot created', 'Timeslot nicht gefunden': 'Time slot not found', 'Es läuft schon ein Timeslot': 'A time slot is already running',
     'Ende fehlt – laufen darf nur ein Timeslot von heute': 'End missing – only a time slot of today may be running',
     'Beginn liegt in der Zukunft': 'Start lies in the future', 'Timeslot gibt es schon': 'Time slot already exists',
@@ -48,8 +49,8 @@
     'Monat': 'Month', 'Audits': 'Audits', '▶ Audit': '▶ Audit',
     'Timeslot anlegen': 'Create time slot', 'Plan': 'Plan', 'Plan vor Beginn': 'Plan before start',
     'Ende liegt in der Zukunft – geplantes Ende in die Spalte Plan': 'End lies in the future – enter a planned end in the Plan column',
-    'Graue Werte sind Vorschläge – Antippen übernimmt sie. + legt die oberste Zeile an, ⇄ wechselt, › öffnet den Timeslot. Buchen und Ignorieren nur am PC.':
-      'Grey values are suggestions – tap to take them. + creates the top row, ⇄ switches, › opens the time slot. Booking and ignoring only on the PC.',
+    'Graue Werte sind Vorschläge – Antippen übernimmt sie. In der letzten Zeile entsteht ein neuer Timeslot, sobald Auftrag und Beginn eingetragen sind und du die Zeile verlässt; Ende leer = läuft. ⇄ wechselt, › öffnet den Timeslot. Buchen und Ignorieren nur am PC.':
+      'Grey values are suggestions – tap to take them. In the last row a new time slot is created as soon as order and start are entered and you leave the row; empty end = running. ⇄ switches, › opens the time slot. Booking and ignoring only on the PC.',
     'Aufträge, Positionen, Start mit Planzeit': 'Orders, positions, start with planned time',
     'Auditplan': 'Audit plan', 'Auditplan entsperren': 'Unlock audit plan', 'Entsperren': 'Unlock', 'Festlegen': 'Set', 'Darstellung': 'Appearance', 'Kopfdaten': 'Header data', 'Aufträge': 'Orders', 'Positionen': 'Positions', 'Timeslots': 'Time slots',
     'ohne Position': 'no position', 'Neuer Auftrag': 'New order', 'Neue Position': 'New position', '+ Neuer Auftrag': '+ New order',
