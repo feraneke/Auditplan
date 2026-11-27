@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   Auditplan – Oberfläche
-  Version: 2.0.20 (2026-11-27)
+  Version: 2.0.21 (2026-11-27)
   Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
   Läuft in der Android-Hülle (window.AndroidBridge) und zum Ausprobieren auch im Browser.
   Versionshistorie:
@@ -95,6 +95,9 @@
                        mit Planzeit entfällt samt Fenstern Auftrag/Position; erfasst wird in der Tabelle und
                        auf der Seite Timeslot (dort auch Planzeit). Positionsliste der Seite Timeslot aus
                        allen Positionen. Dauer auf der Seite Timeslot und Tagessumme als h:mm wie in der Tabelle.
+    2.0.21 (2026-11-27) Fehler (Befund Frank 2026-11-27): Sprung mit „Weiter“ der Tastatur ins Feld Ende übernahm
+                       den grauen Vorschlag „jetzt“; der neue Timeslot war sofort beendet statt zu laufen.
+                       Vorschläge übernimmt jetzt nur ein echter Tipp auf das Feld.
 -->
 <html lang="de">
 <head>
@@ -502,7 +505,7 @@ html[data-thema=hell] .mz .wx{color:#fff}
 var L = window.Logik, AP = window.Apdat;
 var BR = window.AndroidBridge || null;
 var ALT = 'auditplan.daten', TRESOR = 'auditplan.tresor', SPERRE = 'auditplan.sperre';
-var OBERFLAECHE = '2.0.20';                                           // 2.0.16: Version dieser Datei, angezeigt in den Einstellungen
+var OBERFLAECHE = '2.0.21';                                           // 2.0.16: Version dieser Datei, angezeigt in den Einstellungen
 var KUERZEL_RE = /^(K-[A-Z0-9]{6}\/A-[A-Z0-9]{4}|NEU-\d+)$/;
 
 // ---------------------------------------------------------------- Grundfunktionen
@@ -1905,8 +1908,11 @@ function zeileSpeichern(z) {
 }
 /** Ereignisse einer Tabelle (Monat und Tagesansicht, 2.0.19) */
 function tabelleEreignisse(t) {
+  var getippt = null;                                                // 2.0.21: nur ein echter Tipp übernimmt den Vorschlag,
+  t.addEventListener('pointerdown', function (ev) { getippt = ev.target; }, true);   // nicht der Sprung mit „Weiter“ der Tastatur
   t.addEventListener('focusin', function (ev) {                      // grauer Vorschlag: Antippen übernimmt ihn
-    var e = ev.target; if (monatRefokus || !e.dataset || !e.dataset.v || e.value || e.readOnly) return;
+    var e = ev.target, tipp = getippt === e; getippt = null;
+    if (!tipp || monatRefokus || !e.dataset || !e.dataset.v || e.value || e.readOnly) return;
     e.value = e.dataset.v;
     var z = e.closest('.mz');
     if (z.dataset.z === 'neu') monatNeu[e.dataset.f] = e.value; else zeileSpeichern(z);

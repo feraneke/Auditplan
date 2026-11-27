@@ -1,6 +1,6 @@
 /*
  * Auditplan – Sprache DE/EN
- * Version: 2.0.20 (2026-11-27)
+ * Version: 2.0.21 (2026-11-27)
  * Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
  *
  * Die Oberfläche ist auf Deutsch geschrieben. Bei Sprache EN übersetzt dieses Modul
@@ -23,11 +23,12 @@
  *   2.0.18 (2026-11-27) Monat: Knopf Wechsel, Hinweistext, Meldung nach Wechsel.
  *   2.0.19 (2026-11-27) Tagesansicht als Tabelle: Hinweistext, eingeklappter Bereich.
  *   2.0.20 (2026-11-27) Versionsstand mit index.html 2.0.20 (Bereich entfällt, Texte bleiben unschädlich).
+ *   2.0.21 (2026-11-27) Versionsstand mit index.html 2.0.21 (keine neuen Texte).
  */
 (function (global) {
   'use strict';
 
-  var VERSION = '2.0.20';
+  var VERSION = '2.0.21';
   var SCHLUESSEL = 'auditplan.sprache';
 
   // Ganze Texte (nach Trim verglichen)
