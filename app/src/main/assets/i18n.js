@@ -1,6 +1,6 @@
 /*
  * Auditplan – Sprache DE/EN
- * Version: 2.0.10 (2026-11-27)
+ * Version: 2.0.11 (2026-11-27)
  * Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
  *
  * Die Oberfläche ist auf Deutsch geschrieben. Bei Sprache EN übersetzt dieses Modul
@@ -16,16 +16,18 @@
  * Versionshistorie:
  *   2.0.9 (2026-11-27) Erste Fassung (Wunsch Frank 2026-11-27, Chat 400_App_003).
  *   2.0.10 (2026-11-27) Englische Begriffe wie im TimeKeeper am PC: Order, Position, remarks, time slot.
+ *   2.0.11 (2026-11-27) Seite Timeslot, Darstellung Dunkel/Hell.
  */
 (function (global) {
   'use strict';
 
-  var VERSION = '2.0.10';
+  var VERSION = '2.0.11';
   var SCHLUESSEL = 'auditplan.sprache';
 
   // Ganze Texte (nach Trim verglichen)
   var GANZ = {
-    'Auditplan': 'Audit plan', 'Auditplan entsperren': 'Unlock audit plan', 'Entsperren': 'Unlock', 'Festlegen': 'Set',
+    'Auditplan': 'Audit plan', 'Auditplan entsperren': 'Unlock audit plan', 'Entsperren': 'Unlock', 'Festlegen': 'Set', 'Darstellung': 'Appearance', 'Kopfdaten': 'Header data', 'Dunkel': 'Dark', 'Hell': 'Light', 'Timeslot': 'Time slot',
+    'Planzeit (min)': 'Planned time (min)', 'Gespeichert': 'Saved', 'hh:mm': 'hh:mm',
     'PIN eingeben': 'Enter PIN', 'PIN wiederholen': 'Repeat PIN', 'PIN ändern': 'Change PIN', 'PIN festlegen': 'Set PIN',
     'Neue PIN': 'New PIN', 'Sperren': 'Lock', 'Einstellungen': 'Settings', '+ Neues Audit': '+ New audit',
     'Neues Audit': 'New audit', 'Import .txt': 'Import .txt', 'Arbeitstag': 'Work day', 'Abbrechen': 'Cancel',
@@ -162,7 +164,7 @@
     ['Wert muss größer 0 sein', 'Value must be greater than 0'], ['Prozent höchstens 100', 'Percent at most 100'],
     ['Zu viele Fehlversuche. Weiter um ', 'Too many failed attempts. Continue at '], ['. Wartezeit 5 min.', '. Waiting time 5 min.'],
     ['Auf beiden Seiten geändert (', 'Changed on both sides ('], ['Gespeichert: Download/Auditplan/', 'Saved: Download/Auditplan/'],
-    ['Ein Timeslot', 'A timeslot'],
+    ['Ein Timeslot', 'A timeslot'], ['Status ', 'Status '], [' · Dauer ', ' · duration '], ['Arbeitstag · ', 'Work day · '],
     ['–läuft', '–running'], ['Vibration kurz', 'vibration short'], ['Vibration lang', 'vibration long'], ['Vibration aus', 'vibration off'],
     ['Arbeitstag · ', 'Work day · '], ['Probelauf · ', 'Trial run · '], ['Dieses Audit hat ', 'This audit has '], ['Die Datei wurde ', 'The file was '],
     ['Audit läuft – ', 'Audit running – '], [' Töne geplant', ' signals planned'], ['Ton übernommen: ', 'Sound applied: '],

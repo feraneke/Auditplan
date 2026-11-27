@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   Auditplan – Oberfläche
-  Version: 2.0.10 (2026-11-27)
+  Version: 2.0.11 (2026-11-27)
   Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
   Läuft in der Android-Hülle (window.AndroidBridge) und zum Ausprobieren auch im Browser.
   Versionshistorie:
@@ -53,6 +53,13 @@
                        neue Modul i18n.js; Wahl bleibt auf dem Gerät (auch für die PIN-Seite).
     2.0.10 (2026-11-27) Begriffe wie im TimeKeeper am PC (CONV-015, Befund Frank 2026-11-27):
                        „Position“ statt „Aufgabe“, „Timeslot“ statt „Slot“ in allen Texten.
+    2.0.11 (2026-11-27) Wünsche Frank 2026-11-27: Timeslots des Arbeitstags je eine Zeile, Tipp
+                       öffnet die eigene Seite Timeslot (Auftrag, Position, Beginn, Ende, Planzeit,
+                       Status, Dauer, Bemerkung; Teilen, Parken, Löschen, Speichern) statt Dialog.
+                       Darstellung Dunkel/Hell in den Einstellungen (auf dem Gerät gespeichert).
+                       Startseite: Arbeitstag als Knopf neben „+ Neues Audit“.
+                       Audit bearbeiten: Kopfdaten, Kapitel und Zeitplan als drei Seiten mit
+                       Reitern statt untereinander; jede Seite erreicht die anderen.
 -->
 <html lang="de">
 <head>
@@ -60,6 +67,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#101418">
 <title>Auditplan</title>
+<script>try { if (localStorage.getItem('auditplan.thema') === 'hell') document.documentElement.setAttribute('data-thema', 'hell'); } catch (e) { }</script>
 <style>
 :root{--bg:#101418;--karte:#1a2026;--karte2:#222a31;--linie:#2e3840;--text:#e8edf1;--leise:#8e9aa4;
   --akzent:#37c6d9;--warn:#f0b43c;--rot:#f0625a;--gruen:#5fd38d;--radius:14px}
@@ -185,7 +193,20 @@ textarea{min-height:110px}
 .wahl input{width:20px;height:20px}
 #s-pin .karte{max-width:380px;margin:60px auto}
 #s-pin input{font-size:26px;letter-spacing:6px;text-align:center}
-.slot{display:grid;grid-template-columns:104px 1fr auto;gap:6px;padding:8px 0;border-bottom:1px solid var(--linie);font-size:14px;cursor:pointer}
+.slot{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--linie);font-size:14px;cursor:pointer;white-space:nowrap}
+.slot .zt{flex:0 0 auto;font-variant-numeric:tabular-nums}
+.slot .wo{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.slot .h{flex:0 0 auto;color:var(--leise);font-variant-numeric:tabular-nums}
+.slot .pfeil{flex:0 0 auto;color:var(--leise)}
+#s-liste .reihe button{flex:1;white-space:nowrap;padding:10px 6px;min-width:0;overflow:hidden;text-overflow:ellipsis}
+/* 2.0.11: Darstellung Hell */
+html[data-thema=hell]{--bg:#f3f5f7;--karte:#ffffff;--karte2:#e8ecf0;--linie:#d0d7de;--text:#17202a;--leise:#5d6873;
+  --akzent:#0b8ea3;--warn:#b97d0c;--rot:#cf3a31;--gruen:#2a9a57}
+html[data-thema=hell] button.haupt,html[data-thema=hell] .segmente button.an,html[data-thema=hell] .badge{color:#fff}
+html[data-thema=hell] button.gefahr,html[data-thema=hell] .tagbalken.rot{background:#fbe2e0;color:#8a1f19}
+html[data-thema=hell] .sperrhinweis{background:#fff1cc;color:#6b4e00}
+html[data-thema=hell] .kd input[type=text]::placeholder{color:#9aa5ae}
+html[data-thema=hell] #toast{background:#2b3540}
 .slot .st{color:var(--leise);font-size:12px}
 .slot.laeuft{color:var(--akzent);font-weight:600}
 .sperrhinweis{background:#3a2f12;color:#ffe3a3;border-radius:10px;padding:8px 10px;font-size:13px;margin:6px 0}
@@ -209,11 +230,12 @@ textarea{min-height:110px}
 <div class="screen" id="s-liste">
   <div class="kopf"><h1>Auditplan</h1><button id="b-sperren" title="Sperren">🔒</button><button id="b-einst" title="Einstellungen">⚙</button></div>
   <div class="reihe">
+    <button class="haupt" id="z-tag">Arbeitstag</button>
     <button class="haupt" id="b-neu">+ Neues Audit</button>
     <button id="b-import">Import .txt</button>
   </div>
+  <div class="leise" id="z-tag-info" style="margin:4px 2px 0"></div>
   <input type="file" id="f-import" accept=".txt,text/plain" style="display:none">
-  <div class="zeile" id="z-tag"><div class="txt"><b>Arbeitstag</b> <span id="z-tag-info"></span></div></div>
   <div id="liste" class="liste-audit"></div>
   <div class="leise" style="margin-top:10px">Import: Arbeitsstand der 400.dotm (Auditzeiten.txt). Tippen = öffnen, ⋮ = bearbeiten, exportieren, löschen.</div>
 </div>
@@ -221,7 +243,9 @@ textarea{min-height:110px}
 <!-- ================= Neu / Bearbeiten ================= -->
 <div class="screen" id="s-edit">
   <div class="kopf"><button id="e-zurueck">←</button><h1 id="e-titel">Neues Audit</h1></div>
-  <div class="karte">
+  <div class="segmente" id="e-reiter" style="margin-bottom:8px">
+    <button data-r="kopf">Kopfdaten</button><button data-r="kapitel">Kapitel</button><button data-r="plan">Zeitplan</button></div>
+  <div class="karte" id="e-s-kopf">
     <label>Audit-Kürzel (kein Kundenname; leer = vorläufiges Kürzel NEU-n)</label><input id="e-kunde" type="text" placeholder="K-7F3A9Q/A-2B8K">
     <div class="raster">
       <div><label>Auditzeit (h)</label><input id="e-zeit" type="text" inputmode="decimal"></div>
@@ -235,13 +259,13 @@ textarea{min-height:110px}
     </div>
     <label>Ausschlüsse / Nichtanwendbarkeiten (Komma)</label><input id="e-excl" type="text">
   </div>
-  <div class="karte">
+  <div class="karte" id="e-s-kapitel">
     <div class="reihe"><strong style="flex:3">Kapitel</strong><button id="e-vorschlag" style="flex:1">Reset</button></div>
     <div class="leise" id="e-meldung"></div>
     <div id="e-posten"></div>
     <div class="leise" id="e-summe" style="margin-top:8px"></div>
   </div>
-  <div class="karte">
+  <div class="karte" id="e-s-plan">
     <strong>Zeitplan</strong>
     <div id="e-warn"></div>
     <div id="e-plan"></div>
@@ -314,12 +338,37 @@ textarea{min-height:110px}
   </div>
 </div>
 
+<!-- ================= Timeslot (2.0.11) ================= -->
+<div class="screen" id="s-slot">
+  <div class="kopf"><button id="sl-zurueck">←</button><h1 id="sl-titel">Timeslot</h1></div>
+  <div class="karte">
+    <div class="raster">
+      <div><label>Auftrag</label><input id="sl-auftrag" type="text" list="dl-auftrag" autocomplete="off"></div>
+      <div><label>Position</label><input id="sl-pos" type="text" list="dl-pos" autocomplete="off"></div>
+    </div>
+    <div class="raster">
+      <div><label>Beginn</label><input id="sl-von" type="text" placeholder="hh:mm"></div>
+      <div><label>Ende</label><input id="sl-bis" type="text" placeholder="läuft"></div>
+    </div>
+    <div class="raster">
+      <div><label>Planzeit (min)</label><input id="sl-plan" type="text" inputmode="numeric"></div>
+      <div><label>Teilen um (hh:mm)</label><input id="sl-teil" type="text" placeholder="leer = nicht teilen"></div>
+    </div>
+    <div class="leise" id="sl-info" style="margin-top:8px"></div>
+    <label>Bemerkung</label><textarea id="sl-bem"></textarea>
+    <div class="knopfreihe"><button id="sl-park"></button><button class="gefahr" id="sl-del">Löschen</button></div>
+  </div>
+  <div class="unten"><div class="innen"><button id="sl-abbrechen">Abbrechen</button><button class="haupt" id="sl-speichern">Speichern</button></div></div>
+</div>
+
 <!-- ================= Einstellungen ================= -->
 <div class="screen" id="s-einst">
   <div class="kopf"><button id="n-zurueck">←</button><h1>Einstellungen</h1></div>
   <div class="karte">
     <div class="reihe"><strong style="flex:2">Sprache</strong>
       <button id="n-de" style="flex:1">DE</button><button id="n-en" style="flex:1">EN</button></div>
+    <div class="reihe" style="margin-top:8px"><strong style="flex:2">Darstellung</strong>
+      <button id="n-dunkel" style="flex:1">Dunkel</button><button id="n-hell" style="flex:1">Hell</button></div>
   </div>
   <div class="karte">
     <strong>Signale</strong>
@@ -524,7 +573,7 @@ function zuLange() { return daten && versteckt && Date.now() - versteckt > (+dat
 // ---------------------------------------------------------------- Navigation
 var ansicht = '';
 function zeigeRoh(n) {
-  ['pin', 'liste', 'edit', 'audit', 'doku', 'einst', 'kdok', 'tag'].forEach(function (x) { $('s-' + x).classList.toggle('an', x === n); });
+  ['pin', 'liste', 'edit', 'audit', 'doku', 'einst', 'kdok', 'tag', 'slot'].forEach(function (x) { $('s-' + x).classList.toggle('an', x === n); });
   ansicht = n; window.scrollTo(0, 0);
 }
 function zeige(n) {
@@ -541,6 +590,7 @@ function zurueck() {
   if (ansicht === 'edit' && edit.vonAudit) { oeffneAudit(edit.vonAudit); return true; }
   if (ansicht === 'kdok') { kdokZurueck(); return true; }
   if (ansicht === 'doku') { einstSeite(); return true; }
+  if (ansicht === 'slot') { slotZurueck(); return true; }
   zeigeListe(); return true;
 }
 function appWiederDa() {
@@ -603,7 +653,7 @@ function zeigeListe() {
     });
   $('liste').innerHTML = html || '<div class="karte leise">Noch kein Audit. Lege eins an oder importiere Auditzeiten.txt.</div>';
   var s = laufenderSlot();
-  $('z-tag-info').textContent = s ? '· läuft seit ' + hm(s.start) + ' · ' + s.auftrag + ' / ' + s.position : '· ' + L.stunden(tagSumme(heuteIso()) / 3600000) + ' h heute';
+  $('z-tag-info').textContent = 'Arbeitstag ' + (s ? '· läuft seit ' + hm(s.start) + ' · ' + s.auftrag + ' / ' + s.position : '· ' + L.stunden(tagSumme(heuteIso()) / 3600000) + ' h heute');
   zeige('liste');
 }
 $('liste').addEventListener('click', function (ev) {
@@ -685,13 +735,20 @@ function probelauf() {
 
 // ---------------------------------------------------------------- Editor
 var edit = { audit: null, posten: [], vonAudit: null };
+/** 2.0.11: Reiter im Editor (Kopfdaten | Kapitel | Zeitplan) */
+function editReiter(r) {
+  ['kopf', 'kapitel', 'plan'].forEach(function (x) { $('e-s-' + x).style.display = x === r ? '' : 'none'; });
+  [].forEach.call($('e-reiter').querySelectorAll('button'), function (b) { b.classList.toggle('an', b.dataset.r === r); });
+  window.scrollTo(0, 0);
+}
+$('e-reiter').addEventListener('click', function (ev) { var b = ev.target.closest('button'); if (b) editReiter(b.dataset.r); });
 function neuesAudit() {
   edit = { audit: null, posten: [], vonAudit: null };
   $('e-titel').textContent = 'Neues Audit';
   $('e-kunde').value = ''; $('e-zeit').value = '16'; $('e-typ').value = '1. ÜA'; $('e-start').value = heuteIso();
   $('e-startzeit').value = '09:00'; $('e-beginn').value = '09:00'; $('e-ende').value = '17:30'; $('e-pause').value = '0,5';
   $('e-nodev').checked = false; $('e-excl').value = '';
-  vorschlagRechnen(); zeige('edit');
+  vorschlagRechnen(); editReiter('kopf'); zeige('edit');
 }
 function bearbeiten(a, vonAudit) {
   if (a.quelle === 'import' && !a.posten) { alert('Die importierte Datei hat keinen [DATEN]-Block. Bitte in der 400.dotm ändern und neu importieren.'); return; }
@@ -707,7 +764,7 @@ function bearbeiten(a, vonAudit) {
   $('e-beginn').value = k.tagBeginn || '09:00'; $('e-ende').value = k.tagEnde || '17:30'; $('e-pause').value = k.pause || '0,5';
   $('e-nodev').checked = !!k.noDev; $('e-excl').value = k.excl || '';
   $('e-meldung').textContent = '';
-  postenZeigen(); planZeigen(); zeige('edit');
+  postenZeigen(); planZeigen(); editReiter('kopf'); zeige('edit');
 }
 function kopfAusFormular() {
   return { kunde: $('e-kunde').value.trim().toUpperCase(), auditzeit: $('e-zeit').value.trim(), typ: $('e-typ').value, noDev: $('e-nodev').checked,
@@ -1242,7 +1299,7 @@ function browserTakt() {
 // ---------------------------------------------------------------- Einstellungen und Signalregeln (A2)
 function einstZeigen() {
   var e = daten.einst;
-  spracheKnoepfe();                                                     // 2.0.9
+  spracheKnoepfe(); themaKnoepfe();                                     // 2.0.9, 2.0.11
   $('n-ton').checked = !e.tonAus; $('n-vib').checked = !e.vibAus;      // 2.0.8
   $('a-schirm').checked = !!e.schirm; $('n-sperre').value = e.sperreMin; $('n-rad').value = e.radSek;
   $('n-auditpos').value = e.auditPos; $('n-soll').value = L.stunden(+e.sollTag);
@@ -1264,6 +1321,18 @@ function spracheKnoepfe() {
   var en = I18N.sprache() === 'en';
   $('n-de').className = en ? '' : 'haupt'; $('n-en').className = en ? 'haupt' : '';
 }
+/** 2.0.11: Darstellung Dunkel/Hell (auf dem Gerät) */
+function themaKnoepfe() {
+  var hell = document.documentElement.getAttribute('data-thema') === 'hell';
+  $('n-dunkel').className = hell ? '' : 'haupt'; $('n-hell').className = hell ? 'haupt' : '';
+}
+function themaSetzen(t) {
+  if (t === 'hell') document.documentElement.setAttribute('data-thema', 'hell'); else document.documentElement.removeAttribute('data-thema');
+  try { localStorage.setItem('auditplan.thema', t); } catch (e) { }
+  themaKnoepfe();
+}
+$('n-dunkel').onclick = function () { themaSetzen('dunkel'); };
+$('n-hell').onclick = function () { themaSetzen('hell'); };
 $('n-de').onclick = function () { I18N.setzen('de'); spracheKnoepfe(); toast('Deutsch'); };
 $('n-en').onclick = function () { I18N.setzen('en'); spracheKnoepfe(); toast('English'); };
 $('n-ton').onchange = function () { einstSetzen('tonAus', !this.checked); dienstNeuPlanen(); toast(this.checked ? 'Ton an' : 'Ton aus'); };
@@ -1514,44 +1583,69 @@ function tagAnzeigen() {
   daten.slots.map(function (x, i) { return { s: x, i: i }; }).filter(function (x) { return !x.s.geloescht && isoVon(x.s.start) === tagWahl; })
     .sort(function (a, b) { return a.s.start - b.s.start; }).forEach(function (x) {
       var t = x.s;
-      html += '<div class="slot' + (t.ende ? '' : ' laeuft') + '" data-i="' + x.i + '"><span>' + hm(t.start) + '–' + (t.ende ? hm(t.ende) : 'läuft') + '</span>' +
-        '<span>' + esc(t.auftrag) + ' / ' + esc(t.position) + (t.bem ? '<div class="st">' + esc(t.bem) + '</div>' : '') + '</span>' +
-        '<span class="st">' + esc(t.status) + '<br>' + L.stunden(Math.round(slotDauer(t) / 900000) / 4) + ' h</span></div>';
+      var wo = (t.auftrag === '_UNASSIGNED' ? '' : t.auftrag) + (t.position && t.position !== '_UNASSIGNED' ? ' / ' + t.position : '') + (t.bem ? ' · ' + t.bem : '');
+      html += '<div class="slot' + (t.ende ? '' : ' laeuft') + '" data-i="' + x.i + '"><span class="zt">' + hm(t.start) + '–' + (t.ende ? hm(t.ende) : 'läuft') + '</span>' +
+        '<span class="wo">' + esc(wo || '–') + '</span>' +
+        '<span class="h">' + (t.status === 'open' ? '' : esc(t.status) + ' · ') + L.stunden(Math.round(slotDauer(t) / 900000) / 4) + ' h</span><span class="pfeil">›</span></div>';
     });
   $('t-slots').innerHTML = html || '<div class="leise">Keine Timeslots an diesem Tag.</div>';
 }
+// 2.0.11: Timeslot als eigene Seite statt Dialog
+var slotIdx = -1;
 $('t-slots').addEventListener('click', function (ev) {
   var r = ev.target.closest('.slot'); if (!r) return;
   var s = daten.slots[+r.dataset.i]; if (!s) return;
   if (s.status === 'booked' || s.status === 'ignored') { toast('Gebucht bzw. ignoriert – nur am PC änderbar'); return; }
-  dialog('Timeslot ' + hm(s.start) + '–' + (s.ende ? hm(s.ende) : 'läuft'),
-    '<div class="raster"><div><label>Beginn</label><input id="sl-von" type="text" value="' + hm(s.start) + '"></div>' +
-    '<div><label>Ende</label><input id="sl-bis" type="text" value="' + (s.ende ? hm(s.ende) : '') + '" placeholder="läuft"></div></div>' +
-    '<label>Bemerkung</label><input id="sl-bem" type="text" value="' + esc(s.bem) + '">' +
-    '<label>Teilen um (hh:mm)</label><input id="sl-teil" type="text" placeholder="leer = nicht teilen">' +
-    '<div class="knopfreihe"><button id="sl-park">' + (s.status === 'parked' ? 'Parken aufheben' : 'Parken') + '</button><button class="gefahr" id="sl-del">Löschen</button></div>',
-    [{ text: 'Abbrechen' }, { text: 'Speichern', haupt: true, fn: function () {
-      var d0 = new Date(s.start); d0.setHours(0, 0, 0, 0);
-      var v = L.uhrzeitMin($('sl-von').value), b = $('sl-bis').value.trim() ? L.uhrzeitMin($('sl-bis').value) : null, t = $('sl-teil').value.trim() ? L.uhrzeitMin($('sl-teil').value) : null;
-      if (v < 0 || b === -1 || t === -1) { toast('Uhrzeit hh:mm'); return false; }
-      var von = d0.getTime() + v * 60000, bis = b === null ? (s.ende ? s.ende : 0) : d0.getTime() + b * 60000;
-      if (bis && bis <= von) { toast('Ende vor Beginn'); return false; }
-      var alterStart = s.start;
-      s.start = von; s.ende = bis; s.bem = $('sl-bem').value.trim();
-      if (t !== null) {
-        var tm = d0.getTime() + t * 60000;
-        if (tm <= von || (bis && tm >= bis)) { s.start = alterStart; toast('Teilungszeit liegt nicht im Timeslot'); return false; }
-        daten.slots.push({ auftrag: s.auftrag, position: s.position, start: tm, ende: s.ende, status: s.status, bem: s.bem, geaendert: jetztStempel(), geloescht: false });
-        s.ende = tm;
-      }
-      if (alterStart !== s.start) {                                   // Schlüssel (Start) geändert: alten Satz als Löschmarke behalten
-        daten.slots.push({ auftrag: s.auftrag, position: s.position, start: alterStart, ende: alterStart + 60000, status: s.status, bem: '', geaendert: jetztStempel(), geloescht: true });
-      }
-      s.geaendert = jetztStempel(); sichern(); tagDienst(); tagAnzeigen();
-    } }]);
-  $('sl-park').onclick = function () { s.status = s.status === 'parked' ? 'open' : 'parked'; s.geaendert = jetztStempel(); sichern(); dlgZu(); tagAnzeigen(); };
-  $('sl-del').onclick = function () { if (!confirm('Timeslot löschen?')) return; s.geloescht = true; s.geaendert = jetztStempel(); sichern(); dlgZu(); tagDienst(); tagAnzeigen(); };
+  slotOeffnen(+r.dataset.i);
 });
+function slotOeffnen(i) {
+  var s = daten.slots[i]; if (!s) return;
+  slotIdx = i;
+  $('sl-titel').textContent = 'Timeslot ' + hm(s.start) + '–' + (s.ende ? hm(s.ende) : 'läuft');
+  $('sl-auftrag').value = s.auftrag === '_UNASSIGNED' ? '' : s.auftrag;
+  $('sl-pos').value = s.position === '_UNASSIGNED' ? '' : s.position;
+  $('sl-von').value = hm(s.start); $('sl-bis').value = s.ende ? hm(s.ende) : '';
+  $('sl-plan').value = +s.planMin > 0 ? s.planMin : ''; $('sl-teil').value = ''; $('sl-bem').value = s.bem || '';
+  $('sl-info').textContent = 'Status ' + s.status + ' · Dauer ' + L.stunden(Math.round(slotDauer(s) / 900000) / 4) + ' h';
+  $('sl-park').textContent = s.status === 'parked' ? 'Parken aufheben' : 'Parken';
+  zeige('slot');
+}
+function slotZurueck() { slotIdx = -1; tagAuswahl(); tagAnzeigen(); zeige('tag'); }
+$('sl-zurueck').onclick = slotZurueck;
+$('sl-abbrechen').onclick = slotZurueck;
+$('sl-speichern').onclick = function () {
+  var s = daten.slots[slotIdx]; if (!s) { slotZurueck(); return; }
+  var d0 = new Date(s.start); d0.setHours(0, 0, 0, 0);
+  var v = L.uhrzeitMin($('sl-von').value), b = $('sl-bis').value.trim() ? L.uhrzeitMin($('sl-bis').value) : null, t = $('sl-teil').value.trim() ? L.uhrzeitMin($('sl-teil').value) : null;
+  if (v < 0 || b === -1 || t === -1) { toast('Uhrzeit hh:mm'); return; }
+  var pl = $('sl-plan').value.trim().replace(',', '.');
+  if (pl && !(+pl > 0)) { toast('Planzeit in Minuten, z. B. 90'); return; }
+  var von = d0.getTime() + v * 60000, bis = b === null ? (s.ende ? s.ende : 0) : d0.getTime() + b * 60000;
+  if (bis && bis <= von) { toast('Ende vor Beginn'); return; }
+  var tm = t !== null ? d0.getTime() + t * 60000 : null;
+  if (tm !== null && (tm <= von || (bis && tm >= bis))) { toast('Teilungszeit liegt nicht im Timeslot'); return; }
+  var au = $('sl-auftrag').value.trim() || '_UNASSIGNED', po = $('sl-pos').value.trim() || '_UNASSIGNED';
+  auftragMerken(au, po);
+  var alterStart = s.start, alt = { auftrag: s.auftrag, position: s.position };
+  s.auftrag = au; s.position = po; s.start = von; s.ende = bis; s.bem = $('sl-bem').value.trim(); s.planMin = pl ? Math.round(+pl) : 0;
+  if (tm !== null) {
+    daten.slots.push({ auftrag: s.auftrag, position: s.position, start: tm, ende: s.ende, status: s.status, bem: s.bem, planMin: 0, geaendert: jetztStempel(), geloescht: false });
+    s.ende = tm;
+  }
+  if (alterStart !== s.start || alt.auftrag !== s.auftrag || alt.position !== s.position) {   // Schlüssel geändert: alten Satz als Löschmarke behalten
+    daten.slots.push({ auftrag: alt.auftrag, position: alt.position, start: alterStart, ende: alterStart + 60000, status: s.status, bem: '', geaendert: jetztStempel(), geloescht: true });
+  }
+  s.geaendert = jetztStempel(); sichern(); tagDienst(); toast('Gespeichert'); slotZurueck();
+};
+$('sl-park').onclick = function () {
+  var s = daten.slots[slotIdx]; if (!s) return;
+  s.status = s.status === 'parked' ? 'open' : 'parked'; s.geaendert = jetztStempel(); sichern(); slotZurueck();
+};
+$('sl-del').onclick = function () {
+  var s = daten.slots[slotIdx]; if (!s) return;
+  if (!confirm('Timeslot löschen?')) return;
+  s.geloescht = true; s.geaendert = jetztStempel(); sichern(); tagDienst(); slotZurueck();
+};
 
 // ---------------------------------------------------------------- Datenaustausch .apdat (A6)
 var M = AP.minuten;
