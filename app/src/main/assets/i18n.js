@@ -1,6 +1,6 @@
 /*
  * Auditplan – Sprache DE/EN
- * Version: 2.0.17 (2026-11-27)
+ * Version: 2.0.18 (2026-11-27)
  * Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
  *
  * Die Oberfläche ist auf Deutsch geschrieben. Bei Sprache EN übersetzt dieses Modul
@@ -20,11 +20,12 @@
  *   2.0.15 (2026-11-27) Arbeitstag mit Listen und Fenstern für Aufträge, Positionen, Timeslots.
  *   2.0.16 (2026-11-27) Seite Monat (Task 400-02): Tabelle, Suche, Meldungen, Monatsnamen.
  *   2.0.17 (2026-11-27) Versionsstand mit index.html 2.0.17 (keine neuen Texte).
+ *   2.0.18 (2026-11-27) Monat: Knopf Wechsel, Hinweistext, Meldung nach Wechsel.
  */
 (function (global) {
   'use strict';
 
-  var VERSION = '2.0.17';
+  var VERSION = '2.0.18';
   var SCHLUESSEL = 'auditplan.sprache';
 
   // Ganze Texte (nach Trim verglichen)
@@ -32,8 +33,9 @@
     // 2.0.16: Seite Monat
     'Heute ›': 'Today ›', 'Tag': 'Day', 'Auftrag / Position': 'Order / position', 'Dauer': 'Duration', 'ohne Countdown': 'no countdown',
     'Suchen: Auftrag, Position, Bemerkung': 'Search: order, position, remarks', 'Keine Timeslots.': 'No time slots.', 'Keine Treffer.': 'No matches.',
-    'Graue Werte sind Vorschläge – Antippen übernimmt sie. Tipp auf den Tag öffnet die Tagesansicht mit den Uhren, › den Timeslot, + legt die oberste Zeile an.':
-      'Grey values are suggestions – tap to take them. Tap the day to open the day view with the clocks, › opens the time slot, + creates the top row.',
+    'Graue Werte sind Vorschläge – Antippen übernimmt sie. Oberste Zeile: + legt den Timeslot an, Ende leer = läuft. ⇄ beendet den laufenden Timeslot jetzt und beginnt einen neuen. Tipp auf den Tag öffnet die Tagesansicht mit den Uhren, › den Timeslot.':
+      'Grey values are suggestions – tap to take them. Top row: + creates the time slot, empty end = running. ⇄ ends the running time slot now and starts a new one. Tap the day to open the day view with the clocks, › opens the time slot.',
+    'Timeslot beendet – neuen Auftrag eintragen, dann +': 'Time slot ended – enter the new order, then +',
     'Timeslot angelegt': 'Time slot created', 'Timeslot nicht gefunden': 'Time slot not found', 'Es läuft schon ein Timeslot': 'A time slot is already running',
     'Ende fehlt – laufen darf nur ein Timeslot von heute': 'End missing – only a time slot of today may be running',
     'Beginn liegt in der Zukunft': 'Start lies in the future', 'Timeslot gibt es schon': 'Time slot already exists',
