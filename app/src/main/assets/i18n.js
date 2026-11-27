@@ -164,7 +164,7 @@
     ['Wert muss größer 0 sein', 'Value must be greater than 0'], ['Prozent höchstens 100', 'Percent at most 100'],
     ['Zu viele Fehlversuche. Weiter um ', 'Too many failed attempts. Continue at '], ['. Wartezeit 5 min.', '. Waiting time 5 min.'],
     ['Auf beiden Seiten geändert (', 'Changed on both sides ('], ['Gespeichert: Download/Auditplan/', 'Saved: Download/Auditplan/'],
-    ['Ein Timeslot', 'A timeslot'], ['Status ', 'Status '], [' · Dauer ', ' · duration '], ['Arbeitstag · ', 'Work day · '],
+    ['Ein Timeslot', 'A timeslot'], ['Abhaken und Dokumentnamen im Audit: Tipp auf die Zeile im Wählrad.', 'Tick off and document names in the audit: tap the row in the dial.'], ['Status ', 'Status '], [' · Dauer ', ' · duration '], ['Arbeitstag · ', 'Work day · '],
     ['–läuft', '–running'], ['Vibration kurz', 'vibration short'], ['Vibration lang', 'vibration long'], ['Vibration aus', 'vibration off'],
     ['Arbeitstag · ', 'Work day · '], ['Probelauf · ', 'Trial run · '], ['Dieses Audit hat ', 'This audit has '], ['Die Datei wurde ', 'The file was '],
     ['Audit läuft – ', 'Audit running – '], [' Töne geplant', ' signals planned'], ['Ton übernommen: ', 'Sound applied: '],

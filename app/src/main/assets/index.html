@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   Auditplan – Oberfläche
-  Version: 2.0.13 (2026-11-27)
+  Version: 2.0.14 (2026-11-27)
   Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
   Läuft in der Android-Hülle (window.AndroidBridge) und zum Ausprobieren auch im Browser.
   Versionshistorie:
@@ -66,6 +66,8 @@
     2.0.13 (2026-11-27) Editor, Seite Kapitel (Wunsch Frank 2026-11-27): Kopf der Tabelle bleibt
                        beim Scrollen stehen; zwischen „Kapitel“ und „Reset“ immer Ist/Soll-Stunden
                        des Audits (gelb bei Abweichung = Lücke oder Überhang).
+    2.0.14 (2026-11-27) Editor, Seite Kapitel: Tipp auf einen Kapitelnamen zeigt die erwarteten
+                       Dokumente je Unterpunkt (Vorgaben aus den Einstellungen; Wunsch Frank).
 -->
 <html lang="de">
 <head>
@@ -104,7 +106,7 @@ label{display:block;font-size:13px;color:var(--leise);margin:8px 0 4px}
 .knopfreihe button{padding:7px 10px;font-size:14px}
 /* Editor */
 .posten{display:grid;grid-template-columns:28px 1fr 74px 64px;gap:6px;align-items:center;padding:5px 0;border-bottom:1px solid var(--linie)}
-.posten .name{font-size:14px}
+.posten .name{font-size:14px;cursor:pointer}
 .posten input[type=text]{text-align:right;padding:6px}
 .posten .pfeile{display:flex;gap:2px}
 .posten .pfeile button{padding:4px 7px;font-size:13px}
@@ -798,7 +800,7 @@ function postenZeigen() {
   edit.posten.forEach(function (p, i) {
     var fest = p.key === 'EG' || p.key === 'AG';
     html += '<div class="posten' + (p.on ? '' : ' aus') + '"><input type="checkbox" data-i="' + i + '" data-f="on"' + (p.on ? ' checked' : '') + '>' +
-      '<div class="name">' + esc(L.titelVon(p.key)) + '</div>' +
+      '<div class="name" data-i="' + i + '" data-f="dok">' + esc(L.titelVon(p.key)) + '</div>' +
       '<input type="text" inputmode="decimal" data-i="' + i + '" data-f="h" value="' + (p.h > 0 ? L.stunden(p.h) : '') + '"' + (p.on ? '' : ' disabled') + '>' +
       '<div class="pfeile">' + (fest ? '' : '<button data-i="' + i + '" data-f="hoch"' + (i <= 1 ? ' disabled' : '') + '>▲</button><button data-i="' + i + '" data-f="runter"' + (i >= n - 2 ? ' disabled' : '') + '>▼</button>') + '</div></div>';
   });
@@ -811,12 +813,27 @@ $('e-posten').addEventListener('change', function (ev) {
   planZeigen();
 });
 $('e-posten').addEventListener('click', function (ev) {
+  var nm = ev.target.closest('.name[data-f=dok]');                  // 2.0.14: erwartete Dokumente zeigen
+  if (nm) { kapitelDokumente(edit.posten[+nm.dataset.i]); return; }
   var b = ev.target.closest('button'); if (!b) return;
   var i = +b.dataset.i, j = b.dataset.f === 'hoch' ? i - 1 : i + 1;
   if (j < 1 || j > edit.posten.length - 2) return;
   var x = edit.posten[i]; edit.posten[i] = edit.posten[j]; edit.posten[j] = x;
   postenZeigen(); planZeigen();
 });
+/** 2.0.14: erwartete Dokumente eines Kapitels (Vorgaben je Unterpunkt), nur Anzeige */
+function kapitelDokumente(p) {
+  if (!p) return;
+  var ups = L.unterpunkteVon(p.key), html = '';
+  if (!ups.length) ups = [p.key];
+  ups.forEach(function (up) {
+    var v = vorgaben(up);
+    html += '<div class="upkopf"><span>' + esc(up + ' ' + (L.upName(up) || '')) + '</span></div>' +
+      (v.length ? v.map(function (t) { return '<div class="kd offen" style="padding:4px 0">' + esc(t) + '</div>'; }).join('')
+        : '<div class="leise">Keine Vorgabe – unter Einstellungen eintragen oder „+“.</div>');
+  });
+  dialog(L.titelVon(p.key), html + '<div class="leise" style="margin-top:8px">Abhaken und Dokumentnamen im Audit: Tipp auf die Zeile im Wählrad.</div>', [{ text: 'OK', haupt: true }]);
+}
 function planZeigen() {
   var kopf = kopfAusFormular();
   var z = L.zeitplan(kopf, edit.posten);
