@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   Auditplan – Oberfläche
-  Version: 2.0.24 (2026-11-27)
+  Version: 2.0.25 (2026-11-27)
   Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
   Läuft in der Android-Hülle (window.AndroidBridge) und zum Ausprobieren auch im Browser.
   Versionshistorie:
@@ -113,6 +113,9 @@
                        keine abgesetzte oberste Zeile und kein Knopf +; am Ende des Tages steht eine leere Zeile
                        wie jede andere; sie wird zum Timeslot, sobald Auftrag und Beginn eingetragen sind und
                        der Fokus die Zeile verlässt (Ende leer = läuft, ein laufender endet wie bei Wechsel).
+    2.0.25 (2026-11-27) Laufende Timeslots enden beim Anlegen eines neuen nur nach Rückfrage (Festlegung Frank
+                       2026-11-27): Abbrechen = beide laufen weiter, die Zeit zählt doppelt (z. B. Arbeit im Zug).
+                       Mehrere laufende Timeslots erlaubt; Uhr, Timer und Signale folgen dem zuletzt begonnenen.
 -->
 <html lang="de">
 <head>
@@ -522,7 +525,7 @@ html[data-thema=hell] .mz .ax{color:#fff}
 var L = window.Logik, AP = window.Apdat;
 var BR = window.AndroidBridge || null;
 var ALT = 'auditplan.daten', TRESOR = 'auditplan.tresor', SPERRE = 'auditplan.sperre';
-var OBERFLAECHE = '2.0.24';                                           // 2.0.16: Version dieser Datei, angezeigt in den Einstellungen
+var OBERFLAECHE = '2.0.25';                                           // 2.0.16: Version dieser Datei, angezeigt in den Einstellungen
 var KUERZEL_RE = /^(K-[A-Z0-9]{6}\/A-[A-Z0-9]{4}|NEU-\d+)$/;
 
 // ---------------------------------------------------------------- Grundfunktionen
@@ -1565,7 +1568,10 @@ $('d-vorgabe').onclick = function () {
 // ---------------------------------------------------------------- Arbeitstag (A7)
 // slot: {auftrag, position, start (ms), ende (ms, 0 = läuft), status, bem, geaendert, geloescht}
 var tagWahl = heuteIso();
-function laufenderSlot() { return daten ? daten.slots.filter(function (s) { return !s.geloescht && !s.ende; })[0] || null : null; }
+/** 2.0.25: mehrere Timeslots dürfen gleichzeitig laufen (Festlegung Frank 2026-11-27, z. B. Arbeit im Zug) */
+function laufendeSlots() { return daten ? daten.slots.filter(function (s) { return !s.geloescht && !s.ende; }) : []; }
+/** der zuletzt begonnene laufende Timeslot (Uhr, Timer, Signale) */
+function laufenderSlot() { var l = laufendeSlots(); return l.length ? l.reduce(function (a, b) { return b.start >= a.start ? b : a; }) : null; }
 function slotDauer(s) { return (s.ende || Date.now()) - s.start; }
 function tagSumme(iso) {
   var n = 0;
@@ -1890,11 +1896,13 @@ function monatWechsel(i) {
 }
 /** Sekundentakt: nur die Dauer laufender Timeslots nachführen (keine Neuzeichnung während der Eingabe) */
 function monatTakt() {
-  var l = laufenderSlot(); if (!l) return;
-  var i = daten.slots.indexOf(l), t = tabelleAktiv(), el = t.querySelector('[data-du="' + i + '"]');
-  if (el) el.textContent = hmDauer(slotDauer(l));
-  var e = t.querySelector('.mz[data-z="' + i + '"] input[data-f="bis"]');                     // Vorschlag „jetzt“ für das Ende mitführen
-  if (e && !e.value && document.activeElement !== e) { e.placeholder = hm(Date.now()); e.dataset.v = e.placeholder; }
+  var t = tabelleAktiv();
+  laufendeSlots().forEach(function (l) {                              // 2.0.25: alle laufenden Timeslots
+    var i = daten.slots.indexOf(l), el = t.querySelector('[data-du="' + i + '"]');
+    if (el) el.textContent = hmDauer(slotDauer(l));
+    var e = t.querySelector('.mz[data-z="' + i + '"] input[data-f="bis"]');                   // Vorschlag „jetzt“ für das Ende mitführen
+    if (e && !e.value && document.activeElement !== e) { e.placeholder = hm(Date.now()); e.dataset.v = e.placeholder; }
+  });
 }
 function schluesselFrei(au, po, von, ausser) {
   return !daten.slots.some(function (x) { return x !== ausser && !x.geloescht && x.auftrag === au && x.position === po && x.start === von; });
@@ -1918,9 +1926,7 @@ function slotSetzen(i, au, po, vonMin, bisMin, planEnde) {
   var plan = planAusEnde(von, d0.getTime(), planEnde === undefined ? (+s.planMin > 0 ? vonMin + s.planMin : null) : planEnde);
   if (plan === -1) return 'Uhrzeit hh:mm';
   if (plan === -2) return 'Plan vor Beginn';
-  if (!bis) {
-    var l = laufenderSlot();
-    if (l && l !== s) return 'Es läuft schon ein Timeslot';
+  if (!bis) {                                                          // 2.0.25: weitere laufende Timeslots erlaubt
     if (isoVon(von) !== heuteIso()) return 'Ende fehlt – laufen darf nur ein Timeslot von heute';
     if (von > Date.now()) return 'Beginn liegt in der Zukunft';
   }
@@ -1945,14 +1951,20 @@ function slotAusVorschlag(iso, au, po, vonMin, bisMin, planEnde) {
   var plan = planAusEnde(von, d0, planEnde === undefined ? null : planEnde);
   if (plan === -1) return 'Uhrzeit hh:mm';
   if (plan === -2) return 'Plan vor Beginn';
-  var l = laufenderSlot();
+  var lauf = [];
   if (!bis) {
     if (iso !== heuteIso()) return 'Ende fehlt – laufen darf nur ein Timeslot von heute';
     if (von > Date.now()) return 'Beginn liegt in der Zukunft';
-    if (l && von <= l.start) return 'Beginn vor dem laufenden Timeslot';
+    lauf = laufendeSlots();
   }
   if (!schluesselFrei(au, po, von, null)) return 'Timeslot gibt es schon';
-  if (!bis && l) { l.ende = von; l.geaendert = jetztStempel(); }                // wie Wechsel: der laufende Timeslot endet mit dem neuen Beginn
+  if (lauf.length) {                                                  // 2.0.25: Laufende nur nach Rückfrage beenden (Festlegung Frank)
+    var namen = lauf.map(function (x) { return (ohneLeer(x.auftrag) || 'ohne Auftrag') + (ohneLeer(x.position) ? ' / ' + x.position : '') + ' seit ' + hm(x.start); }).join('\n');
+    if (confirm('Läuft noch:\n' + namen + '\n\nOK = beenden um ' + hm(von) + '\nAbbrechen = weiterlaufen lassen (Zeit zählt doppelt)')) {
+      if (lauf.some(function (x) { return von <= x.start; })) return 'Beginn vor dem laufenden Timeslot';
+      lauf.forEach(function (x) { x.ende = von; x.geaendert = jetztStempel(); });
+    }
+  }
   auftragMerken(au, po);
   daten.slots.push({ auftrag: au, position: po, start: von, ende: bis, status: 'open', bem: '', planMin: plan, geaendert: jetztStempel(), geloescht: false });
   sichern(); tagDienst();

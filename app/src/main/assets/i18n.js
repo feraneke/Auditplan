@@ -1,6 +1,6 @@
 /*
  * Auditplan – Sprache DE/EN
- * Version: 2.0.24 (2026-11-27)
+ * Version: 2.0.25 (2026-11-27)
  * Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
  *
  * Die Oberfläche ist auf Deutsch geschrieben. Bei Sprache EN übersetzt dieses Modul
@@ -27,11 +27,12 @@
  *   2.0.22 (2026-11-27) Spalte Plan, Meldungen zu Plan und Ende in der Zukunft.
  *   2.0.23 (2026-11-27) Kopf Arbeitstag (Monat, Audits), Knopf ▶ Audit.
  *   2.0.24 (2026-11-27) Hinweistexte ohne Knopf +.
+ *   2.0.25 (2026-11-27) Rückfrage beim Beenden laufender Timeslots.
  */
 (function (global) {
   'use strict';
 
-  var VERSION = '2.0.24';
+  var VERSION = '2.0.25';
   var SCHLUESSEL = 'auditplan.sprache';
 
   // Ganze Texte (nach Trim verglichen)
@@ -225,7 +226,8 @@
   ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'].forEach(function (m, i) {
     TEILE.push([m + ' 20', ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][i] + ' 20']);
   });
-  TEILE.push([' Treffer', ' matches'], [' T · ', ' d · '], [' · Plan bis ', ' · plan until ']);
+  TEILE.push(['Läuft noch:', 'Still running:'], [' seit ', ' since '], ['OK = beenden um ', 'OK = end at '], ['Abbrechen = weiterlaufen lassen (Zeit zählt doppelt)', 'Cancel = keep running (time counts twice)'], ['ohne Auftrag', 'no order'],
+    [' Treffer', ' matches'], [' T · ', ' d · '], [' · Plan bis ', ' · plan until ']);
   TEILE.sort(function (a, b) { return b[0].length - a[0].length; });
   var GANZ_KEYS = {};
   Object.keys(GANZ).forEach(function (k) { GANZ_KEYS[k] = true; });
