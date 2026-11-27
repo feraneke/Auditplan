@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   Auditplan – Oberfläche
-  Version: 2.0.26 (2026-11-27)
+  Version: 2.0.27 (2026-11-27)
   Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
   Läuft in der Android-Hülle (window.AndroidBridge) und zum Ausprobieren auch im Browser.
   Versionshistorie:
@@ -120,6 +120,9 @@
                        steht im Editor über Kopfdaten/Kapitel/Zeitplan (Tippen = laden, ⋮ = Audit-Ansicht,
                        Export, Löschen); Einstellungen mit Abschnitt Audits (Audits bearbeiten, Import .txt);
                        🔒 Sperren auf jeder Seite. Kopf Arbeitstag: Monat · Arbeitstag · 🔒 · ⚙.
+    2.0.27 (2026-11-27) AL-01 gestrichen (Festlegung Frank 2026-11-27, Frage 11 B, auf eigene Verantwortung): Kunde
+                       und Auftrag im Klartext erlaubt; Import ohne Rückfrage nach Kürzel, Editor-Feld „Kunde /
+                       Auftrag“, keine Warnung beim Speichern. Auftragsteil nach „/“ wird getrimmt (▶ Audit).
 -->
 <html lang="de">
 <head>
@@ -323,7 +326,7 @@ html[data-thema=hell] .mz .ax{color:#fff}
   <div class="segmente" id="e-reiter" style="margin-bottom:8px">
     <button data-r="kopf">Kopfdaten</button><button data-r="kapitel">Kapitel</button><button data-r="plan">Zeitplan</button></div>
   <div class="karte" id="e-s-kopf">
-    <label>Audit-Kürzel (kein Kundenname; leer = vorläufiges Kürzel NEU-n)</label><input id="e-kunde" type="text" placeholder="K-7F3A9Q/A-2B8K">
+    <label>Kunde / Auftrag (leer = vorläufig NEU-n)</label><input id="e-kunde" type="text" placeholder="Kunde / 8003099854">
     <div class="raster">
       <div><label>Auditzeit (h)</label><input id="e-zeit" type="text" inputmode="decimal"></div>
       <div><label>Audittyp</label><select id="e-typ"><option>1. ÜA</option><option>2. ÜA</option><option>Rezert</option></select></div>
@@ -387,7 +390,7 @@ html[data-thema=hell] .mz .ax{color:#fff}
     <div class="segmente" id="k-filter"><button data-v="0">Auswahl: dieses Kapitel</button><button data-v="1">alle Kapitel</button></div>
     <div id="k-liste"></div>
     <datalist id="k-bekannt"></datalist>
-    <div class="leise" style="margin-top:8px">Grau = erwartet. Erledigt durch Häkchen oder durch Eintrag des Dokumentnamens mit Revision und Datum, z. B. „QM-Handbuch Rev. 7 vom 03.2026“. Keine Firmennamen.</div>
+    <div class="leise" style="margin-top:8px">Grau = erwartet. Erledigt durch Häkchen oder durch Eintrag des Dokumentnamens mit Revision und Datum, z. B. „QM-Handbuch Rev. 7 vom 03.2026“.</div>
   </div>
 </div>
 
@@ -524,8 +527,7 @@ html[data-thema=hell] .mz .ax{color:#fff}
 var L = window.Logik, AP = window.Apdat;
 var BR = window.AndroidBridge || null;
 var ALT = 'auditplan.daten', TRESOR = 'auditplan.tresor', SPERRE = 'auditplan.sperre';
-var OBERFLAECHE = '2.0.26';                                           // 2.0.16: Version dieser Datei, angezeigt in den Einstellungen
-var KUERZEL_RE = /^(K-[A-Z0-9]{6}\/A-[A-Z0-9]{4}|NEU-\d+)$/;
+var OBERFLAECHE = '2.0.27';                                           // 2.0.16: Version dieser Datei, angezeigt in den Einstellungen
 
 // ---------------------------------------------------------------- Grundfunktionen
 function $(id) { return document.getElementById(id); }
@@ -778,14 +780,7 @@ $('f-import').onchange = function () {
     try {
       var text = L.textAusBytes(r.result);
       var a = L.importTxt(text);
-      if (!KUERZEL_RE.test(String(a.kopf.kunde || '').trim())) {
-        var k = prompt('Die Datei enthält unter „Kunde / Auftrag“ einen Klartext:\n' + a.kopf.kunde +
-          '\n\nAuf dem Handy sind keine Kundendaten erlaubt. Bitte das Audit-Kürzel eingeben (leer = vorläufiges Kürzel):', '');
-        if (k === null) return;
-        k = k.trim().toUpperCase() || neuesKuerzel();
-        text = text.split(a.kopf.kunde).join(k);
-        a = L.importTxt(text);
-      }
+      if (!String(a.kopf.kunde || '').trim()) { a.kopf.kunde = neuesKuerzel(); }   // 2.0.27: Klartext erlaubt (AL-01 gestrichen)
       a.id = AP.kennung('AP'); a.original = text; a.doks = []; a.ist = []; a.abw = [];
       a.name = a.kopf.kunde; a.geaendert = a.planGeaendert = jetztStempel();
       daten.audits.push(a); sichern(); editVon = 'einst'; listeZeichnen(); neuesAudit();
@@ -939,8 +934,7 @@ $('e-zurueck').onclick = $('e-abbrechen').onclick = function () { zurueck(); };
 $('e-speichern').onclick = function () {
   var kopf = kopfAusFormular();
   if (!kopf.start) { toast('Bitte den Auditstart eintragen.'); return; }
-  if (!kopf.kunde) kopf.kunde = edit.audit && KUERZEL_RE.test(edit.audit.name || '') ? edit.audit.name : neuesKuerzel();
-  if (!KUERZEL_RE.test(kopf.kunde) && !confirm('„' + kopf.kunde + '“ ist kein Audit-Kürzel (K-xxxxxx/A-xxxx oder NEU-n). Auf dem Handy sind keine Kundennamen erlaubt. Trotzdem speichern?')) return;
+  if (!kopf.kunde) kopf.kunde = edit.audit && edit.audit.name ? edit.audit.name : neuesKuerzel();   // 2.0.27: Klartext erlaubt
   planZeigen();
   if (!edit.plan.zeilen.length) { toast('Kein Kapitel mit Zeit.'); return; }
   var a = edit.audit;
@@ -1616,7 +1610,7 @@ function slotStoppen() {
 /** Audit-Tage: Audit starten öffnet einen Slot auf der Audit-Position, Audit beenden schließt ihn */
 function auditSlotStarten() {
   var a = auditById(aktuell.id); if (!a || a.probe) return;
-  var au = String(a.name || '').split('/')[1]; if (!au) return;
+  var au = String(a.name || '').split('/')[1]; au = au ? au.trim() : ''; if (!au) return;
   var l = laufenderSlot(); if (l && l.auftrag === au && l.position === daten.einst.auditPos) return;
   slotStarten(au, daten.einst.auditPos, 'Audit ' + (a.kopf.typ || ''));
 }
@@ -1737,7 +1731,7 @@ var auditVon = 'tag';                                              // 2.0.23: R�
 function tagZeigen() { tagSig = ''; tagAnzeigen(); zeige('tag'); }
 /** neuestes Audit zu einem Auftrag (Teil nach „/“ im Audit-Kürzel) */
 function auditZumAuftrag(au) {
-  return daten.audits.filter(function (a) { return !a.geloescht && !a.probe && String(a.name || '').split('/')[1] === au; })
+  return daten.audits.filter(function (a) { return !a.geloescht && !a.probe && (String(a.name || '').split('/')[1] || '').trim() === au; })
     .sort(function (a, b) { return (b.kopf.start || '').localeCompare(a.kopf.start || ''); })[0] || null;
 }
 function tagOeffnenAm(iso) {
