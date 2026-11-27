@@ -30,7 +30,8 @@ Ohne Schlüssel lässt sich jede neue Version nur nach dem Deinstallieren der al
 
 | Bereich | Funktion |
 |---|---|
-| Auditliste | **Arbeitstag** (immer oben), **+ Neues Audit**, **Import .txt** (Auditzeiten.txt aus der 400.dotm; ein Kundenname wird durch ein Kürzel ersetzt), ⋮ = Bearbeiten, Export .txt, Löschen; 🔒 = sperren |
+| Start | Ab 2.0.23 öffnet die App nach der PIN den **Arbeitstag** (Tagesansicht von heute); läuft ein Audit, die Audit-Ansicht. Kopf: **Monat** · Arbeitstag · **Audits** · ⚙. Zurück-Taste auf dem Arbeitstag beendet die App. |
+| Audits | Unterseite (Knopf Audits): **+ Neues Audit**, **Import .txt** (Auditzeiten.txt aus der 400.dotm; ein Kundenname wird durch ein Kürzel ersetzt), ⋮ = Bearbeiten, Export .txt, Löschen; 🔒 = sperren. Ein Timeslot der Position „audit onsite“ zu einem Auftrag mit Auditplan zeigt **▶ Audit** und öffnet die Audit-Ansicht direkt aus dem Arbeitstag. |
 | Neu/Bearbeiten | Kopfdaten wie in der 400.dotm, Audit-Kürzel statt Kunde (leer = vorläufiges Kürzel NEU-n). Vorschlag nach den Regeln der 400.dotm. |
 | Audit | Uhr mit Segment des laufenden Timeslots, Timer mit Restzeit, Marken der Signalregeln. **Verlängern** (+5/+10/+15 min oder bis Uhrzeit; Nachfolgende verschieben oder nur nächstes kürzen), **Kapitel beenden** (vorziehen oder Zeit dem nächsten geben). Wählrad mit Plan und Ist; rot = über Tagesende. |
 | Kapitel-Dokumente | Tipp auf eine Zeile des Wählrads. Erwartete Dokumente je Unterpunkt, grau bis erledigt; Häkchen oder Dokumentname mit Revision und Datum; Auswahl bekannter Namen (dieses Kapitel oder alle, inkl. Voraudits); **+** je Unterpunkt. Tasks anderer Auditoren ausgegraut. |
@@ -50,4 +51,4 @@ Ohne Schlüssel lässt sich jede neue Version nur nach dem Deinstallieren der al
 Neue Dateien landen im Repository, und GitHub baut die neue APK unter **Releases**. Du installierst sie über die alte, und die Daten bleiben erhalten.
 
 ---
-Erstellt mit Claude (claude.ai), Projekt „400_Auditplan“, 25.11.2026; Stand App 2.0 (Stufen A1–A7), 26.11.2026; Arbeitstag ohne PC (2.0.6), 27.11.2026; Monatstabelle (2.0.16), 27.11.2026; Uhrzeiten ohne Doppelpunkt eintippbar (1300 = 13:00) und ⚙ Einstellungen auf jeder Seite (2.0.17), 27.11.2026; Vorschläge lückenlos und Knopf ⇄ Wechsel in der Monatstabelle (2.0.18), 27.11.2026; Tagesansicht als Tabelle (2.0.19) und ohne Listenbereich (2.0.20), 27.11.2026; Spalte Plan und Tag als Überschrift (2.0.22), 27.11.2026.
+Erstellt mit Claude (claude.ai), Projekt „400_Auditplan“, 25.11.2026; Stand App 2.0 (Stufen A1–A7), 26.11.2026; Arbeitstag ohne PC (2.0.6), 27.11.2026; Monatstabelle (2.0.16), 27.11.2026; Uhrzeiten ohne Doppelpunkt eintippbar (1300 = 13:00) und ⚙ Einstellungen auf jeder Seite (2.0.17), 27.11.2026; Vorschläge lückenlos und Knopf ⇄ Wechsel in der Monatstabelle (2.0.18), 27.11.2026; Tagesansicht als Tabelle (2.0.19) und ohne Listenbereich (2.0.20), 27.11.2026; Spalte Plan und Tag als Überschrift (2.0.22), 27.11.2026; Start mit dem Arbeitstag, Audit als Arbeitspunkt (2.0.23), 27.11.2026.

@@ -1,6 +1,6 @@
 /*
  * Auditplan – Sprache DE/EN
- * Version: 2.0.22 (2026-11-27)
+ * Version: 2.0.23 (2026-11-27)
  * Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
  *
  * Die Oberfläche ist auf Deutsch geschrieben. Bei Sprache EN übersetzt dieses Modul
@@ -25,11 +25,12 @@
  *   2.0.20 (2026-11-27) Versionsstand mit index.html 2.0.20 (Bereich entfällt, Texte bleiben unschädlich).
  *   2.0.21 (2026-11-27) Versionsstand mit index.html 2.0.21 (keine neuen Texte).
  *   2.0.22 (2026-11-27) Spalte Plan, Meldungen zu Plan und Ende in der Zukunft.
+ *   2.0.23 (2026-11-27) Kopf Arbeitstag (Monat, Audits), Knopf ▶ Audit.
  */
 (function (global) {
   'use strict';
 
-  var VERSION = '2.0.22';
+  var VERSION = '2.0.23';
   var SCHLUESSEL = 'auditplan.sprache';
 
   // Ganze Texte (nach Trim verglichen)
@@ -44,6 +45,7 @@
     'Ende fehlt – laufen darf nur ein Timeslot von heute': 'End missing – only a time slot of today may be running',
     'Beginn liegt in der Zukunft': 'Start lies in the future', 'Timeslot gibt es schon': 'Time slot already exists',
     'Beginn vor dem laufenden Timeslot': 'Start before the running time slot', 'Beginn fehlt': 'Start missing', 'Tag als TT.MM.': 'Day as DD.MM.',
+    'Monat': 'Month', 'Audits': 'Audits', '▶ Audit': '▶ Audit',
     'Timeslot anlegen': 'Create time slot', 'Plan': 'Plan', 'Plan vor Beginn': 'Plan before start',
     'Ende liegt in der Zukunft – geplantes Ende in die Spalte Plan': 'End lies in the future – enter a planned end in the Plan column',
     'Graue Werte sind Vorschläge – Antippen übernimmt sie. + legt die oberste Zeile an, ⇄ wechselt, › öffnet den Timeslot. Buchen und Ignorieren nur am PC.':
