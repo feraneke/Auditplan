@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   Auditplan – Oberfläche
-  Version: 2.0.21 (2026-11-27)
+  Version: 2.0.22 (2026-11-27)
   Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
   Läuft in der Android-Hülle (window.AndroidBridge) und zum Ausprobieren auch im Browser.
   Versionshistorie:
@@ -99,6 +99,11 @@
                        den grauen Vorschlag „jetzt“; der neue Timeslot war sofort beendet statt zu laufen.
                        Vorschläge übernimmt jetzt nur ein echter Tipp auf das Feld. Vorschlag Beginn heute
                        immer jetzt (Festlegung Frank 2026-11-27, ersetzt „lückenlos“ aus 2.0.18 für heute).
+    2.0.22 (2026-11-27) Tabelle mit drei Zeiten (Festlegung Frank 2026-11-27: alle drei Zeiten sichtbar): Beginn ·
+                       Plan (geplantes Ende, orange) · Ende. Eingabe in Plan setzt die Planzeit ab Beginn;
+                       Timer zählt bis dahin rückwärts. Ende nach jetzt wird abgelehnt (Hinweis auf Plan).
+                       Seite Timeslot zeigt „Plan bis hh:mm“. Tag als Überschrift über seinen Timeslots statt
+                       eigener Spalte (Wunsch Frank 2026-11-27); oberste Zeile gilt für heute bzw. den gewählten Tag.
 -->
 <html lang="de">
 <head>
@@ -250,26 +255,27 @@ html[data-thema=hell] #toast{background:#2b3540}
 .msuche input{flex:1;min-width:0}
 .mgh{display:flex;justify-content:space-between;gap:8px;font-size:13px;color:var(--leise);text-transform:uppercase;margin:16px 4px 6px}
 .mt{background:var(--karte);border-radius:12px;overflow:hidden}
-.mz{display:grid;grid-template-columns:44px minmax(0,1fr) 48px 48px 40px 22px;gap:4px;align-items:center;padding:3px 8px;font-size:14px}
+.mz{display:grid;grid-template-columns:minmax(0,1fr) 44px 44px 44px 38px 20px;gap:3px;align-items:center;padding:3px 8px;font-size:14px}
 .mz+.mz{border-top:1px solid var(--linie)}
-.mz.neutag{border-top:1px solid var(--leise)}
 .mz.kz{font-size:11px;color:var(--leise);text-transform:uppercase;padding:7px 8px 2px}
-.mz.kz>:nth-child(3),.mz.kz>:nth-child(4){text-align:center}.mz.kz>:nth-child(5){text-align:right}
+.mz.kz>:nth-child(2),.mz.kz>:nth-child(3),.mz.kz>:nth-child(4){text-align:center}.mz.kz>:nth-child(5){text-align:right}
+.mz input.pl{color:var(--warn)}
+.mz.kz>:nth-child(3){color:var(--warn)}
+.mtag{display:flex;justify-content:space-between;padding:7px 8px 3px;font-size:12px;font-weight:600;color:var(--akzent);border-top:1px solid var(--leise);cursor:pointer}
+.mtag span{color:var(--leise);font-weight:400}
+.mtag+.mz{border-top:0}
 .mz input{border:0;border-radius:0;background:transparent;padding:6px 0;width:100%;min-width:0;font-variant-numeric:tabular-nums;border-bottom:1px dashed transparent}
 .mz input:focus{outline:none;background:var(--karte2);border-bottom:1px solid var(--akzent)}
 .mz input::placeholder{color:var(--leise);opacity:.75}
 .mz input.z{text-align:center}
 .mz .au input.a{font-weight:600;padding-bottom:0}
 .mz .au input.p{font-size:12px;color:var(--leise);padding:0 0 4px}
-.mz .tg{font-size:12px;line-height:1.2;color:var(--akzent);cursor:pointer;align-self:stretch;display:flex;flex-direction:column;justify-content:center}
-.mz .tg small{color:var(--leise);font-size:11px}
 .mz .du{text-align:right;color:var(--leise);font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;line-height:1.2}
 .mz .du small{display:block;font-size:10px;text-overflow:ellipsis;overflow:hidden}
 .mz .pf{color:var(--leise);text-align:center;cursor:pointer;font-size:18px}
 .mz.laeuft .du{color:var(--akzent);font-weight:600}
 .mz.fest input{color:var(--leise)}
 .mz.vs{background:var(--karte2)}
-.mz.vs .tg input{font-size:12px;color:var(--akzent)}
 .mz.vs .pf{color:var(--akzent);font-weight:700}
 .mz .wx{display:block;margin:2px 0 0 auto;padding:1px 6px;font-size:13px;line-height:1.3;background:var(--akzent);color:#062a30;border-radius:6px}
 html[data-thema=hell] .mz .wx{color:#fff}
@@ -506,7 +512,7 @@ html[data-thema=hell] .mz .wx{color:#fff}
 var L = window.Logik, AP = window.Apdat;
 var BR = window.AndroidBridge || null;
 var ALT = 'auditplan.daten', TRESOR = 'auditplan.tresor', SPERRE = 'auditplan.sperre';
-var OBERFLAECHE = '2.0.21';                                           // 2.0.16: Version dieser Datei, angezeigt in den Einstellungen
+var OBERFLAECHE = '2.0.22';                                           // 2.0.16: Version dieser Datei, angezeigt in den Einstellungen
 var KUERZEL_RE = /^(K-[A-Z0-9]{6}\/A-[A-Z0-9]{4}|NEU-\d+)$/;
 
 // ---------------------------------------------------------------- Grundfunktionen
@@ -1647,7 +1653,7 @@ function slotOeffnen(i) {
   $('sl-pos').value = s.position === '_UNASSIGNED' ? '' : s.position;
   $('sl-von').value = hm(s.start); $('sl-bis').value = s.ende ? hm(s.ende) : '';
   $('sl-plan').value = +s.planMin > 0 ? s.planMin : ''; $('sl-teil').value = ''; $('sl-bem').value = s.bem || '';
-  $('sl-info').textContent = 'Status ' + s.status + ' · Dauer ' + hmDauer(slotDauer(s)) + ' h';   // 2.0.20: wie in der Tabelle
+  $('sl-info').textContent = 'Status ' + s.status + ' · Dauer ' + hmDauer(slotDauer(s)) + ' h' + (+s.planMin > 0 ? ' · Plan bis ' + hm(s.start + s.planMin * 60000) : '');   // 2.0.22
   $('sl-park').textContent = s.status === 'parked' ? 'Parken aufheben' : 'Parken';
   zeige('slot');
 }
@@ -1742,7 +1748,7 @@ function letzterSlot() {
 function feld(f, wert, vorschlag, klasse, extra) {
   return '<input data-f="' + f + '" class="' + (klasse || '') + '" value="' + esc(wert) + '"' +
     (vorschlag ? ' placeholder="' + esc(vorschlag) + '" data-v="' + esc(vorschlag) + '"' : '') +
-    (f === 'von' || f === 'bis' ? ' data-uhr inputmode="numeric"' : '') + ' autocomplete="off"' + (extra || '') + '>';
+    (f === 'von' || f === 'bis' || f === 'plan' ? ' data-uhr inputmode="numeric"' : '') + ' autocomplete="off"' + (extra || '') + '>';
 }
 /** Vorschlag Beginn: heute immer jetzt (Festlegung Frank 2026-11-27, 2.0.21);
     an früheren Tagen das Ende des letzten Timeslots dieses Tages (lückenlos nachtragen) */
@@ -1755,23 +1761,23 @@ function beginnVorschlag(iso) {
 function vorschlagsZeile(iso) {
   var b = letzterSlot(), n = monatNeu, heute = iso === heuteIso(), laeuft = heute && !!laufenderSlot();
   return '<div class="mz vs" data-z="neu" data-tagdef="' + iso + '">' +
-    '<span class="tg">' + feld('tag', n.tag, ttmm(iso), '') + '</span>' +
     '<span class="au">' + feld('au', n.au, b ? ohneLeer(b.auftrag) : '', 'a', ' list="dl-auftrag"') + feld('po', n.po, b ? ohneLeer(b.position) : '', 'p', ' list="dl-mpos"') + '</span>' +
-    feld('von', n.von, beginnVorschlag(iso), 'z') +
+    feld('von', n.von, beginnVorschlag(iso), 'z') + feld('plan', n.plan || '', '', 'z pl') +
     (laeuft ? feld('bis', n.bis, '', 'z', ' placeholder="läuft"') : heute ? feld('bis', n.bis, hm(Date.now()), 'z') : feld('bis', n.bis, '', 'z', ' placeholder="hh:mm"')) +
     '<span class="du">–</span><span class="pf m-neu" title="Timeslot anlegen">+</span></div>';
 }
-function zeileHtml(x, tage, neu) {
+function zeileHtml(x, tage, neu, tagkopf) {                         // 2.0.22: Tag als Überschrift statt eigener Spalte (Wunsch Frank)
   var s = x.s, fest = s.status === 'booked' || s.status === 'ignored', ro = fest ? ' readonly' : '';
-  return '<div class="mz' + (neu ? ' neutag' : '') + (s.ende ? '' : ' laeuft') + (fest ? ' fest' : '') + '" data-z="' + x.i + '">' +
-    (neu ? '<span class="tg" data-tag="' + x.iso + '">' + tagKurz(x.iso) + '<small>' + hmDauer(tage[x.iso]) + ' h</small></span>' : '<span></span>') +
+  return (neu && tagkopf ? '<div class="mtag" data-tag="' + x.iso + '">' + tagKurz(x.iso) + ttmm(x.iso).slice(3) + '<span>' + hmDauer(tage[x.iso]) + ' h</span></div>' : '') +
+    '<div class="mz' + (s.ende ? '' : ' laeuft') + (fest ? ' fest' : '') + '" data-z="' + x.i + '">' +
     '<span class="au">' + feld('au', ohneLeer(s.auftrag), '', 'a', ' list="dl-auftrag"' + ro) + feld('po', ohneLeer(s.position), '', 'p', ' list="dl-mpos"' + ro) + '</span>' +
     feld('von', hm(s.start), '', 'z', ro) +
+    feld('plan', +s.planMin > 0 ? hm(s.start + s.planMin * 60000) : '', '', 'z pl', ro) +      // 2.0.22: geplantes Ende
     feld('bis', s.ende ? hm(s.ende) : '', s.ende ? '' : hm(Date.now()), 'z', ro) +
     '<span class="du"><span data-du="' + x.i + '">' + hmDauer(slotDauer(s)) + '</span>' + (s.status !== 'open' ? '<small>' + esc(s.status) + '</small>' : '') +
     (s.ende || fest ? '' : '<button class="wx" data-wx="' + x.i + '" title="Wechsel">⇄</button>') + '</span><span class="pf" data-i="' + x.i + '">›</span></div>';
 }
-var KOPFZEILE = '<div class="mz kz"><span>Tag</span><span>Auftrag / Position</span><span>Beginn</span><span>Ende</span><span>Dauer</span><span></span></div>';
+var KOPFZEILE = '<div class="mz kz"><span>Auftrag / Position</span><span>Beginn</span><span>Plan</span><span>Ende</span><span>Dauer</span><span></span></div>';
 /** Tabelle zeichnen: ziel = Container; tagIso = nur dieser Tag (Tagesansicht), sonst Monate mit Suche */
 function tabelleZeichnen(ziel, tagIso) {
   if (!daten) return;
@@ -1791,8 +1797,8 @@ function tabelleZeichnen(ziel, tagIso) {
   if (tagIso) {                                                       // Tagesansicht: eine Tabelle, oben die Vorschlagszeile
     var vt = '';
     html = '<div class="mt">' + KOPFZEILE + vorschlagsZeile(tagIso);
-    L1.forEach(function (x) { html += zeileHtml(x, tage, x.iso !== vt); vt = x.iso; });
-    if (!L1.length) html += '<div class="mz"><span></span><span class="leise">Keine Timeslots.</span></div>';
+    L1.forEach(function (x) { html += zeileHtml(x, tage, x.iso !== vt, false); vt = x.iso; });
+    if (!L1.length) html += '<div class="mz"><span class="leise">Keine Timeslots.</span></div>';
     html += '</div>';
   } else {
     var gruppen = [], cur = null, mon = heute.slice(0, 7);
@@ -1805,8 +1811,8 @@ function tabelleZeichnen(ziel, tagIso) {
         '<div class="mt">' + KOPFZEILE;
       if (!q && g.k === mon) html += vorschlagsZeile(heute);
       var vorTag = '';
-      g.items.forEach(function (x) { html += zeileHtml(x, tage, x.iso !== vorTag); vorTag = x.iso; });
-      if (!g.items.length && !(!q && g.k === mon)) html += '<div class="mz"><span></span><span class="leise">Keine Timeslots.</span></div>';
+      g.items.forEach(function (x) { html += zeileHtml(x, tage, x.iso !== vorTag, true); vorTag = x.iso; });
+      if (!g.items.length && !(!q && g.k === mon)) html += '<div class="mz"><span class="leise">Keine Timeslots.</span></div>';
       html += '</div>';
     });
     $('m-treffer').textContent = q ? L1.length + ' Treffer' : '';
@@ -1828,7 +1834,7 @@ function tagTabelle() { tabelleZeichnen($('t-slots'), tagWahl); tagSig = tagSign
 /** Kennung des Tagesstands: Tabelle der Tagesansicht nur neu zeichnen, wenn sich etwas geändert hat (nicht im Sekundentakt) */
 function tagSignatur() {
   return tagWahl + '|' + Math.floor(Date.now() / 60000) + '|' + daten.slots.filter(function (s) { return !s.geloescht && isoVon(s.start) === tagWahl; })
-    .map(function (s) { return s.auftrag + s.position + s.start + '-' + s.ende + s.status; }).join(';');
+    .map(function (s) { return s.auftrag + s.position + s.start + '-' + s.ende + s.status + 'p' + (s.planMin || 0); }).join(';');
 }
 /** die sichtbare Tabelle neu zeichnen (Tagesansicht oder Monat) */
 function tabelleNeu() { if (ansicht === 'tag') tagTabelle(); else monatAnzeigen(); }
@@ -1855,13 +1861,24 @@ function schluesselFrei(au, po, von, ausser) {
   return !daten.slots.some(function (x) { return x !== ausser && !x.geloescht && x.auftrag === au && x.position === po && x.start === von; });
 }
 /** Timeslot aus einer Tabellenzeile ändern; Rückgabe Fehlertext oder '' */
-function slotSetzen(i, au, po, vonMin, bisMin) {
+/** 2.0.22: geplantes Ende (Minuten des Tages) -> Planzeit in Minuten ab Beginn; null = ohne; -1 = Fehler */
+function planAusEnde(von, d0, planMin) {
+  if (planMin === null) return 0;
+  if (planMin < 0) return -1;
+  var p = Math.round((d0 + planMin * 60000 - von) / 60000);
+  return p > 0 ? p : -2;
+}
+function slotSetzen(i, au, po, vonMin, bisMin, planEnde) {
   var s = daten.slots[i]; if (!s) return 'Timeslot nicht gefunden';
   if (s.status === 'booked' || s.status === 'ignored') return 'Gebucht bzw. ignoriert – nur am PC änderbar';
   if (vonMin === null || vonMin < 0 || bisMin === -1) return 'Uhrzeit hh:mm';
   var d0 = new Date(s.start); d0.setHours(0, 0, 0, 0);
   var von = d0.getTime() + vonMin * 60000, bis = bisMin === null ? 0 : d0.getTime() + bisMin * 60000;
   if (bis && bis <= von) return 'Ende vor Beginn';
+  if (bis > Date.now() + 60000) return 'Ende liegt in der Zukunft – geplantes Ende in die Spalte Plan';
+  var plan = planAusEnde(von, d0.getTime(), planEnde === undefined ? (+s.planMin > 0 ? vonMin + s.planMin : null) : planEnde);
+  if (plan === -1) return 'Uhrzeit hh:mm';
+  if (plan === -2) return 'Plan vor Beginn';
   if (!bis) {
     var l = laufenderSlot();
     if (l && l !== s) return 'Es läuft schon ein Timeslot';
@@ -1871,7 +1888,7 @@ function slotSetzen(i, au, po, vonMin, bisMin) {
   if (!schluesselFrei(au, po, von, s)) return 'Timeslot gibt es schon';
   auftragMerken(au, po);
   var alt = { auftrag: s.auftrag, position: s.position, start: s.start };
-  s.auftrag = au; s.position = po; s.start = von; s.ende = bis;
+  s.auftrag = au; s.position = po; s.start = von; s.ende = bis; s.planMin = plan;
   if (alt.start !== s.start || alt.auftrag !== s.auftrag || alt.position !== s.position)   // Schlüssel geändert: alten Satz als Löschmarke behalten (wie Seite Timeslot)
     daten.slots.push({ auftrag: alt.auftrag, position: alt.position, start: alt.start, ende: alt.start + 60000, status: s.status, bem: '', geaendert: jetztStempel(), geloescht: true });
   s.geaendert = jetztStempel(); sichern(); tagDienst();
@@ -1879,12 +1896,16 @@ function slotSetzen(i, au, po, vonMin, bisMin) {
   return '';
 }
 /** Neuer Timeslot aus der Vorschlagszeile; Rückgabe Fehlertext oder '' */
-function slotAusVorschlag(iso, au, po, vonMin, bisMin) {
+function slotAusVorschlag(iso, au, po, vonMin, bisMin, planEnde) {
   if (!iso) return 'Tag als TT.MM.';
   if (vonMin === null) return 'Beginn fehlt';
   if (vonMin < 0 || bisMin === -1) return 'Uhrzeit hh:mm';
   var d0 = new Date(iso + 'T00:00:00').getTime(), von = d0 + vonMin * 60000, bis = bisMin === null ? 0 : d0 + bisMin * 60000;
   if (bis && bis <= von) return 'Ende vor Beginn';
+  if (bis > Date.now() + 60000) return 'Ende liegt in der Zukunft – geplantes Ende in die Spalte Plan';
+  var plan = planAusEnde(von, d0, planEnde === undefined ? null : planEnde);
+  if (plan === -1) return 'Uhrzeit hh:mm';
+  if (plan === -2) return 'Plan vor Beginn';
   var l = laufenderSlot();
   if (!bis) {
     if (iso !== heuteIso()) return 'Ende fehlt – laufen darf nur ein Timeslot von heute';
@@ -1894,7 +1915,7 @@ function slotAusVorschlag(iso, au, po, vonMin, bisMin) {
   if (!schluesselFrei(au, po, von, null)) return 'Timeslot gibt es schon';
   if (!bis && l) { l.ende = von; l.geaendert = jetztStempel(); }                // wie Wechsel: der laufende Timeslot endet mit dem neuen Beginn
   auftragMerken(au, po);
-  daten.slots.push({ auftrag: au, position: po, start: von, ende: bis, status: 'open', bem: '', planMin: 0, geaendert: jetztStempel(), geloescht: false });
+  daten.slots.push({ auftrag: au, position: po, start: von, ende: bis, status: 'open', bem: '', planMin: plan, geaendert: jetztStempel(), geloescht: false });
   sichern(); tagDienst();
   log('monat | neu ' + iso + ' ' + au + ' / ' + po + ' ' + hm(von) + '-' + (bis ? hm(bis) : 'läuft'));
   return '';
@@ -1904,7 +1925,7 @@ function zeileWerte(z) {
   return w;
 }
 function zeileSpeichern(z) {
-  var w = zeileWerte(z), fehler = slotSetzen(+z.dataset.z, w.au || '_UNASSIGNED', w.po || '_UNASSIGNED', zeitEingabe(w.von), zeitEingabe(w.bis));
+  var w = zeileWerte(z), fehler = slotSetzen(+z.dataset.z, w.au || '_UNASSIGNED', w.po || '_UNASSIGNED', zeitEingabe(w.von), zeitEingabe(w.bis), zeitEingabe(w.plan));
   if (fehler) toast(fehler);
   setTimeout(tabelleNeu, 0);                                         // erst nach dem Fokuswechsel neu zeichnen
 }
@@ -1930,14 +1951,14 @@ function tabelleEreignisse(t) {
     zeileSpeichern(z);
   });
   t.addEventListener('click', function (ev) {
-    var g = ev.target.closest('.tg[data-tag]');
-    if (g) { if (t.id === 'm-tabelle') tagOeffnenAm(g.dataset.tag); return; }
+    var g = ev.target.closest('.mtag[data-tag]');
+    if (g) { tagOeffnenAm(g.dataset.tag); return; }
     var w = ev.target.closest('.wx[data-wx]');
     if (w) { monatWechsel(+w.dataset.wx); return; }
     var nz = ev.target.closest('.m-neu');
     if (nz) {
       var n = monatNeu, def = nz.closest('.mz').dataset.tagdef || heuteIso();
-      var fehler = slotAusVorschlag(tagEingabe(n.tag || ttmm(def)), n.au || '_UNASSIGNED', n.po || '_UNASSIGNED', zeitEingabe(n.von), zeitEingabe(n.bis));
+      var fehler = slotAusVorschlag(tagEingabe(n.tag || ttmm(def)), n.au || '_UNASSIGNED', n.po || '_UNASSIGNED', zeitEingabe(n.von), zeitEingabe(n.bis), zeitEingabe(n.plan));
       if (fehler) { toast(fehler); return; }
       monatNeu = { tag: '', au: '', po: '', von: '', bis: '' }; toast('Timeslot angelegt'); tabelleNeu();
       return;

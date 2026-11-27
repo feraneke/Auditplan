@@ -1,6 +1,6 @@
 /*
  * Auditplan – Sprache DE/EN
- * Version: 2.0.21 (2026-11-27)
+ * Version: 2.0.22 (2026-11-27)
  * Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
  *
  * Die Oberfläche ist auf Deutsch geschrieben. Bei Sprache EN übersetzt dieses Modul
@@ -24,11 +24,12 @@
  *   2.0.19 (2026-11-27) Tagesansicht als Tabelle: Hinweistext, eingeklappter Bereich.
  *   2.0.20 (2026-11-27) Versionsstand mit index.html 2.0.20 (Bereich entfällt, Texte bleiben unschädlich).
  *   2.0.21 (2026-11-27) Versionsstand mit index.html 2.0.21 (keine neuen Texte).
+ *   2.0.22 (2026-11-27) Spalte Plan, Meldungen zu Plan und Ende in der Zukunft.
  */
 (function (global) {
   'use strict';
 
-  var VERSION = '2.0.21';
+  var VERSION = '2.0.22';
   var SCHLUESSEL = 'auditplan.sprache';
 
   // Ganze Texte (nach Trim verglichen)
@@ -43,7 +44,8 @@
     'Ende fehlt – laufen darf nur ein Timeslot von heute': 'End missing – only a time slot of today may be running',
     'Beginn liegt in der Zukunft': 'Start lies in the future', 'Timeslot gibt es schon': 'Time slot already exists',
     'Beginn vor dem laufenden Timeslot': 'Start before the running time slot', 'Beginn fehlt': 'Start missing', 'Tag als TT.MM.': 'Day as DD.MM.',
-    'Timeslot anlegen': 'Create time slot',
+    'Timeslot anlegen': 'Create time slot', 'Plan': 'Plan', 'Plan vor Beginn': 'Plan before start',
+    'Ende liegt in der Zukunft – geplantes Ende in die Spalte Plan': 'End lies in the future – enter a planned end in the Plan column',
     'Graue Werte sind Vorschläge – Antippen übernimmt sie. + legt die oberste Zeile an, ⇄ wechselt, › öffnet den Timeslot. Buchen und Ignorieren nur am PC.':
       'Grey values are suggestions – tap to take them. + creates the top row, ⇄ switches, › opens the time slot. Booking and ignoring only on the PC.',
     'Aufträge, Positionen, Start mit Planzeit': 'Orders, positions, start with planned time',
@@ -220,7 +222,7 @@
   ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'].forEach(function (m, i) {
     TEILE.push([m + ' 20', ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][i] + ' 20']);
   });
-  TEILE.push([' Treffer', ' matches'], [' T · ', ' d · ']);
+  TEILE.push([' Treffer', ' matches'], [' T · ', ' d · '], [' · Plan bis ', ' · plan until ']);
   TEILE.sort(function (a, b) { return b[0].length - a[0].length; });
   var GANZ_KEYS = {};
   Object.keys(GANZ).forEach(function (k) { GANZ_KEYS[k] = true; });
