@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   Auditplan – Oberfläche
-  Version: 2.0.19 (2026-11-27)
+  Version: 2.0.20 (2026-11-27)
   Herkunft: erstellt mit Claude (claude.ai), Projekt „400_Auditplan“.
   Läuft in der Android-Hülle (window.AndroidBridge) und zum Ausprobieren auch im Browser.
   Versionshistorie:
@@ -91,6 +91,10 @@
                        auf der Seite Monat, nur der gewählte Tag (oberste Zeile, Eingabe in der Zeile, ⇄);
                        erst › öffnet die Seite Timeslot. Aufträge, Positionen und Start mit Planzeit
                        eingeklappt darunter. Tabelle wird nur bei Änderungen neu gezeichnet.
+    2.0.20 (2026-11-27) Tagesansicht schlank (Festlegung Frank 2026-11-27): Bereich Aufträge, Positionen, Start
+                       mit Planzeit entfällt samt Fenstern Auftrag/Position; erfasst wird in der Tabelle und
+                       auf der Seite Timeslot (dort auch Planzeit). Positionsliste der Seite Timeslot aus
+                       allen Positionen. Dauer auf der Seite Timeslot und Tagessumme als h:mm wie in der Tabelle.
 -->
 <html lang="de">
 <head>
@@ -228,25 +232,7 @@ textarea{min-height:110px}
 .wahl input{width:20px;height:20px}
 #s-pin .karte{max-width:380px;margin:60px auto}
 #s-pin input{font-size:26px;letter-spacing:6px;text-align:center}
-.slot{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--linie);font-size:14px;cursor:pointer;white-space:nowrap}
-.slot .zt{flex:0 0 auto;font-variant-numeric:tabular-nums}
-.slot .wo{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
-.slot .h{flex:0 0 auto;color:var(--leise);font-variant-numeric:tabular-nums}
-.slot .pfeil{flex:0 0 auto;color:var(--leise)}
 #s-liste .reihe button{flex:1;white-space:nowrap;padding:10px 6px;min-width:0;overflow:hidden;text-overflow:ellipsis}
-/* 2.0.15: Listen im Arbeitstag */
-.lbkopf{display:flex;align-items:center;justify-content:space-between;margin:10px 0 4px}
-.lbkopf:first-child{margin-top:0}
-.lbkopf button{padding:3px 14px;font-size:18px;line-height:1.2}
-.listbox{max-height:190px;overflow-y:auto;border:1px solid var(--linie);border-radius:10px;background:var(--karte2)}
-.lbz{padding:9px 10px;border-bottom:1px solid var(--linie);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;font-size:14px}
-.lbz:last-child,.listbox .slot:last-child{border-bottom:0}
-.lbz.an{background:var(--akzent);color:#062a30;font-weight:600}
-.lbz .leise{font-size:13px}
-.lbz.an .leise{color:inherit;opacity:.75}
-.listbox .slot{padding:9px 10px}
-.listbox .leer{padding:9px 10px;color:var(--leise);font-size:14px}
-html[data-thema=hell] .lbz.an{color:#fff}
 /* 2.0.11: Darstellung Hell */
 html[data-thema=hell]{--bg:#f3f5f7;--karte:#ffffff;--karte2:#e8ecf0;--linie:#d0d7de;--text:#17202a;--leise:#5d6873;
   --akzent:#0b8ea3;--warn:#b97d0c;--rot:#cf3a31;--gruen:#2a9a57}
@@ -255,8 +241,6 @@ html[data-thema=hell] button.gefahr,html[data-thema=hell] .tagbalken.rot{backgro
 html[data-thema=hell] .sperrhinweis{background:#fff1cc;color:#6b4e00}
 html[data-thema=hell] .kd input[type=text]::placeholder{color:#9aa5ae}
 html[data-thema=hell] #toast{background:#2b3540}
-.slot .st{color:var(--leise);font-size:12px}
-.slot.laeuft{color:var(--akzent);font-weight:600}
 /* 2.0.16: Monatstabelle (Aufbau wie Fahrtenbuch) */
 .msuche{display:flex;align-items:center;gap:8px;margin:0 0 6px}
 .msuche input{flex:1;min-width:0}
@@ -286,9 +270,6 @@ html[data-thema=hell] #toast{background:#2b3540}
 .mz .wx{display:block;margin:2px 0 0 auto;padding:1px 6px;font-size:13px;line-height:1.3;background:var(--akzent);color:#062a30;border-radius:6px}
 html[data-thema=hell] .mz .wx{color:#fff}
 .kopf .zahnrad{flex:0 0 auto;padding:8px 10px}
-#t-mehr{padding:4px 14px}
-#t-mehr[open]{padding-bottom:14px}
-#t-mehr .karte{background:var(--karte2);margin:8px 0}
 .sperrhinweis{background:#3a2f12;color:#ffe3a3;border-radius:10px;padding:8px 10px;font-size:13px;margin:6px 0}
 </style>
 </head>
@@ -408,24 +389,7 @@ html[data-thema=hell] .mz .wx{color:#fff}
   </div>
   <div id="t-slots"></div>
   <div class="leise" style="margin:6px 2px 0">Graue Werte sind Vorschläge – Antippen übernimmt sie. + legt die oberste Zeile an, ⇄ wechselt, › öffnet den Timeslot. Buchen und Ignorieren nur am PC.</div>
-  <details class="karte" id="t-mehr"><summary>Aufträge, Positionen, Start mit Planzeit</summary>
-  <div class="karte">
-    <div class="lbkopf"><strong>Aufträge</strong><button id="t-order-neu">+</button></div>
-    <div class="listbox" id="t-orders"></div>
-    <div class="lbkopf"><strong>Positionen</strong><button id="t-pos-neu">+</button></div>
-    <div class="listbox" id="t-poss"></div>
-  </div>
-  <div class="karte">
-    <div id="t-wahl" style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
-    <div class="leise" id="t-rest"></div>
-    <div class="raster">
-      <div><label>Planzeit (min)</label><input id="t-plan" type="text" inputmode="numeric" placeholder="ohne Countdown"></div>
-      <div><label>Bemerkung</label><input id="t-bem" type="text"></div>
-    </div>
-    <div class="aktion2"><button class="haupt" id="t-start">Start</button><button id="t-stopp">Stopp</button></div>
-  </div>
-  </details>
-  <datalist id="dl-auftrag"></datalist><datalist id="dl-pos"></datalist>
+  <datalist id="dl-auftrag"></datalist>
 </div>
 
 <!-- ================= Monat (2.0.16, Task 400-02) ================= -->
@@ -443,7 +407,7 @@ html[data-thema=hell] .mz .wx{color:#fff}
   <div class="karte">
     <div class="raster">
       <div><label>Auftrag</label><input id="sl-auftrag" type="text" list="dl-auftrag" autocomplete="off"></div>
-      <div><label>Position</label><input id="sl-pos" type="text" list="dl-pos" autocomplete="off"></div>
+      <div><label>Position</label><input id="sl-pos" type="text" list="dl-mpos" autocomplete="off"></div>
     </div>
     <div class="raster">
       <div><label>Beginn</label><input id="sl-von" type="text" data-uhr inputmode="numeric" placeholder="hh:mm"></div>
@@ -538,7 +502,7 @@ html[data-thema=hell] .mz .wx{color:#fff}
 var L = window.Logik, AP = window.Apdat;
 var BR = window.AndroidBridge || null;
 var ALT = 'auditplan.daten', TRESOR = 'auditplan.tresor', SPERRE = 'auditplan.sperre';
-var OBERFLAECHE = '2.0.19';                                           // 2.0.16: Version dieser Datei, angezeigt in den Einstellungen
+var OBERFLAECHE = '2.0.20';                                           // 2.0.16: Version dieser Datei, angezeigt in den Einstellungen
 var KUERZEL_RE = /^(K-[A-Z0-9]{6}\/A-[A-Z0-9]{4}|NEU-\d+)$/;
 
 // ---------------------------------------------------------------- Grundfunktionen
@@ -1592,133 +1556,21 @@ function auftraege() {
   if (!a.some(function (y) { return y[0] === '_UNASSIGNED'; })) a.push(['_UNASSIGNED', 'ohne Auftrag']);
   return a;
 }
-function positionen(auftrag) {
-  var p = daten.pos.filter(function (x) { return x.auftrag === auftrag && x.aktiv !== false && !x.geloescht; })
-    .sort(function (a, b) { return (+a.sort || 0) - (+b.sort || 0); }).map(function (x) { return x.position; });
-  if (auftrag !== '_INTERN' && p.indexOf(daten.einst.auditPos) < 0 && /^A-/.test(auftrag)) p.unshift(daten.einst.auditPos);
-  if (p.indexOf('_UNASSIGNED') < 0) p.push('_UNASSIGNED');
-  return p;
-}
-var selAu = null, selPo = null;                                   // 2.0.15: gewählter Auftrag / Position
 function tagOeffnen() {
   tagWahl = heuteIso(); $('t-datumwahl').value = tagWahl;
-  var l = laufenderSlot(); if (l) { selAu = l.auftrag; selPo = l.position; }
   monatNeu = { tag: '', au: '', po: '', von: '', bis: '' }; tagSig = '';   // 2.0.19
-  tagAuswahl(); tagAnzeigen(); zeige('tag');
+  tagAnzeigen(); zeige('tag');
 }
 $('t-zurueck').onclick = function () { monatZeigen(); };         // 2.0.16
 $('t-datumwahl').onchange = function () { tagWahl = this.value || heuteIso(); tagAnzeigen(); };
 function orderVon(au) { return daten.orders.filter(function (o) { return o.auftrag === au && !o.geloescht; })[0] || null; }
 function posVon(au, po) { return daten.pos.filter(function (x) { return x.auftrag === au && x.position === po && !x.geloescht; })[0] || null; }
-/** Listen Aufträge und Positionen neu zeichnen (nur bei Änderungen, nicht im Sekundentakt) */
-function tagAuswahl() {
-  var a = auftraege();
-  if (!selAu || !a.some(function (x) { return x[0] === selAu; })) selAu = a[0] ? a[0][0] : '_UNASSIGNED';
-  $('t-orders').innerHTML = a.map(function (x) {
-    var o = orderVon(x[0]), zus = o && o.anzeige && o.anzeige !== x[0] ? ' <span class="leise">· ' + esc(o.anzeige) + '</span>' : '';
-    return '<div class="lbz' + (x[0] === selAu ? ' an' : '') + '" data-au="' + esc(x[0]) + '">' + esc(x[0] === '_UNASSIGNED' ? 'ohne Auftrag' : x[0]) + zus + '</div>';
-  }).join('');
-  $('dl-auftrag').innerHTML = a.map(function (x) { return '<option value="' + esc(x[0]) + '">' + esc(x[1]) + '</option>'; }).join('');
-  posAuswahl();
-}
-function posAuswahl() {
-  var p = positionen(selAu);
-  if (!selPo || p.indexOf(selPo) < 0) selPo = p[0] || '_UNASSIGNED';
-  $('t-poss').innerHTML = p.map(function (x) {
-    var d = posVon(selAu, x), v = d && +d.vorgabe > 0 ? ' <span class="leise">· ' + L.stunden(+d.vorgabe / 60) + ' h</span>' : '';
-    return '<div class="lbz' + (x === selPo ? ' an' : '') + '" data-po="' + esc(x) + '">' + esc(x === '_UNASSIGNED' ? 'ohne Position' : x) + v + '</div>';
-  }).join('');
-  $('dl-pos').innerHTML = p.map(function (x) { return '<option value="' + esc(x) + '"></option>'; }).join('');
-  restZeigen();
-}
-function restZeigen() {
-  var au = selAu || '_UNASSIGNED', po = selPo || '_UNASSIGNED', p = posVon(au, po);
-  $('t-wahl').textContent = (au === '_UNASSIGNED' ? 'ohne Auftrag' : au) + ' / ' + (po === '_UNASSIGNED' ? 'ohne Position' : po);
-  var ist = 0; daten.slots.forEach(function (s) { if (!s.geloescht && s.auftrag === au && s.position === po) ist += slotDauer(s); });
-  $('t-rest').textContent = p && +p.vorgabe > 0 ? 'Vorgabe ' + L.stunden(+p.vorgabe / 60) + ' h · erfasst ' + L.stunden(Math.round(ist / 900000) / 4) +
-    ' h · Rest ' + L.stunden(Math.round((p.vorgabe * 60000 - ist) / 900000) / 4) + ' h' : 'Erfasst ' + L.stunden(Math.round(ist / 900000) / 4) + ' h';
-}
 /** auf dem Handy eingetippten Auftrag bzw. Position merken (Timeslot-Seite) */
 function auftragMerken(au, po) {
   if (au !== '_UNASSIGNED' && !orderVon(au))
     daten.orders.push({ auftrag: au, anzeige: au, status: 'in Arbeit', lokal: true, geaendert: jetztStempel(), geloescht: false });
   if (po !== '_UNASSIGNED' && !posVon(au, po))
     daten.pos.push({ auftrag: au, position: po, vorgabe: 0, sort: 0, aktiv: true, lokal: true, geaendert: jetztStempel(), geloescht: false });
-}
-// --- Fenster Auftrag ---
-$('t-orders').addEventListener('click', function (ev) {
-  var r = ev.target.closest('.lbz'); if (!r) return;
-  selAu = r.dataset.au; selPo = null; tagAuswahl();
-  if (selAu !== '_UNASSIGNED') auftragFenster(selAu);
-});
-$('t-order-neu').onclick = function () { auftragFenster(null); };
-function auftragFenster(au) {
-  var o = au ? orderVon(au) : null, neu = !au;
-  dialog(neu ? 'Neuer Auftrag' : 'Auftrag ' + au,
-    '<label>Auftrag</label><input id="of-nr" type="text" value="' + esc(au || '') + '"' + (neu || (o && o.lokal) ? '' : ' readonly') + '>' +
-    '<label>Anzeige Handy</label><input id="of-anz" type="text" value="' + esc(o && o.anzeige !== au ? o.anzeige : '') + '">' +
-    (neu ? '' : '<div class="knopfreihe"><button id="of-neu">+ Neuer Auftrag</button><button class="gefahr" id="of-del">Löschen</button></div>'),
-    [{ text: 'Abbrechen' }, { text: 'Speichern', haupt: true, fn: function () {
-      var nr = $('of-nr').value.trim(), anz = $('of-anz').value.trim();
-      if (!nr) { toast('Auftrag fehlt'); return false; }
-      if (nr !== au && orderVon(nr)) { toast('Auftrag gibt es schon'); return false; }
-      if (neu) daten.orders.push({ auftrag: nr, anzeige: anz || nr, status: 'in Arbeit', lokal: true, geaendert: jetztStempel(), geloescht: false });
-      else {
-        if (!o) { o = { auftrag: au, status: 'in Arbeit', lokal: true, geloescht: false }; daten.orders.push(o); }
-        if (nr !== au) {                                              // Nummer geändert: Positionen und Timeslots mitnehmen
-          daten.pos.forEach(function (x) { if (x.auftrag === au) { x.auftrag = nr; x.geaendert = jetztStempel(); } });
-          daten.slots.forEach(function (x) { if (x.auftrag === au) { x.auftrag = nr; x.geaendert = jetztStempel(); } });
-        }
-        o.auftrag = nr; o.anzeige = anz || nr; o.geaendert = jetztStempel();
-      }
-      selAu = nr; sichern(); tagAuswahl(); tagAnzeigen();
-    } }]);
-  if (!neu) {
-    $('of-neu').onclick = function () { dlgZu(); auftragFenster(null); };
-    $('of-del').onclick = function () {
-      if (!confirm('Auftrag „' + au + '“ löschen? Seine Timeslots bleiben erhalten.')) return;
-      if (o) { o.geloescht = true; o.geaendert = jetztStempel(); }
-      daten.pos.forEach(function (x) { if (x.auftrag === au) { x.geloescht = true; x.geaendert = jetztStempel(); } });
-      selAu = null; sichern(); dlgZu(); tagAuswahl(); tagAnzeigen();
-    };
-  }
-}
-// --- Fenster Position ---
-$('t-poss').addEventListener('click', function (ev) {
-  var r = ev.target.closest('.lbz'); if (!r) return;
-  selPo = r.dataset.po; posAuswahl();
-  if (selPo !== '_UNASSIGNED') posFenster(selPo);
-});
-$('t-pos-neu').onclick = function () { posFenster(null); };
-function posFenster(po) {
-  var au = selAu || '_UNASSIGNED', d = po ? posVon(au, po) : null, neu = !po;
-  dialog(neu ? 'Neue Position' : 'Position ' + po,
-    '<div class="leise">Auftrag ' + esc(au === '_UNASSIGNED' ? 'ohne Auftrag' : au) + '</div>' +
-    '<label>Position</label><input id="pf-name" type="text" value="' + esc(po || '') + '">' +
-    '<label>Vorgabe (min)</label><input id="pf-vorg" type="text" inputmode="numeric" value="' + (d && +d.vorgabe > 0 ? d.vorgabe : '') + '">' +
-    (neu ? '' : '<div class="knopfreihe"><button id="pf-neu">+ Neue Position</button><button class="gefahr" id="pf-del">Löschen</button></div>'),
-    [{ text: 'Abbrechen' }, { text: 'Speichern', haupt: true, fn: function () {
-      var nm = $('pf-name').value.trim(), vg = $('pf-vorg').value.trim();
-      if (!nm) { toast('Position fehlt'); return false; }
-      if (vg && !(+vg >= 0)) { toast('Vorgabe in Minuten'); return false; }
-      if (nm !== po && posVon(au, nm)) { toast('Position gibt es schon'); return false; }
-      if (au !== '_UNASSIGNED' && !orderVon(au)) auftragMerken(au, '_UNASSIGNED');
-      if (neu || !d) {
-        d = { auftrag: au, position: nm, vorgabe: 0, sort: 0, aktiv: true, lokal: true, geloescht: false }; daten.pos.push(d);
-      }
-      if (!neu && nm !== po)                                           // umbenannt: Timeslots mitnehmen (wie TsPosRename)
-        daten.slots.forEach(function (x) { if (x.auftrag === au && x.position === po) { x.position = nm; x.geaendert = jetztStempel(); } });
-      d.position = nm; d.vorgabe = vg ? Math.round(+vg) : 0; d.geaendert = jetztStempel();
-      selPo = nm; sichern(); posAuswahl(); tagAnzeigen();
-    } }]);
-  if (!neu) {
-    $('pf-neu').onclick = function () { dlgZu(); posFenster(null); };
-    $('pf-del').onclick = function () {
-      if (!confirm('Position „' + po + '“ löschen? Ihre Timeslots bleiben erhalten.')) return;
-      if (d) { d.geloescht = true; d.geaendert = jetztStempel(); }
-      selPo = null; sichern(); dlgZu(); posAuswahl(); tagAnzeigen();
-    };
-  }
 }
 function slotStarten(auftrag, position, bem, planMin) {
   var jetzt = Math.floor(Date.now() / 60000) * 60000, l = laufenderSlot();
@@ -1732,16 +1584,6 @@ function slotStoppen() {
   var l = laufenderSlot(); if (!l) return false;
   l.ende = Math.max(Math.floor(Date.now() / 60000) * 60000, l.start + 60000); l.geaendert = jetztStempel(); sichern(); return true;
 }
-$('t-start').onclick = function () {
-  var au = selAu || '_UNASSIGNED', po = selPo || '_UNASSIGNED';
-  var pl = $('t-plan').value.trim().replace(',', '.');
-  if (pl && !(+pl > 0)) { toast('Planzeit in Minuten, z. B. 90'); return; }
-  slotStarten(au, po, $('t-bem').value.trim(), pl ? +pl : 0);
-  monatNeu = { tag: '', au: '', po: '', von: '', bis: '' };             // 2.0.19: alte Eingaben der obersten Zeile verwerfen
-  $('t-bem').value = ''; $('t-plan').value = ''; tagWahl = heuteIso(); $('t-datumwahl').value = tagWahl;
-  toast('Timeslot gestartet'); restZeigen(); tagDienst(); tagAnzeigen();
-};
-$('t-stopp').onclick = function () { if (slotStoppen()) { toast('Timeslot beendet'); tagDienst(); } tagAnzeigen(); };
 /** Audit-Tage: Audit starten öffnet einen Slot auf der Audit-Position, Audit beenden schließt ihn */
 function auditSlotStarten() {
   var a = auditById(aktuell.id); if (!a || a.probe) return;
@@ -1774,21 +1616,19 @@ function tagAnzeigen() {
     $('t-bezug').textContent = (s.auftrag === '_UNASSIGNED' ? '' : s.auftrag + ' / ') + (s.position === '_UNASSIGNED' ? '' : s.position) + ' · Plan ' + s.planMin + ' min';
     var rm = Math.ceil(Math.abs(rest) / 60000), rt = rm >= 60 ? Math.floor(rm / 60) + ':' + L.pad(rm % 60) : rm + "'";
     timerZeichnen('t-timer', el / planMs, (rest < 0 ? '+' : '') + rt, rest < 0 ? 'var(--rot)' : 'var(--akzent)', mk);
-    $('t-start').textContent = 'Wechsel';
   } else if (s) {
     uhrZeichnen('t-uhr', d, { von: s.start, bis: Math.max(jetzt, s.start + 60000), anteil: 1, farbe: 'var(--akzent)', marken: [] });
     var p = daten.pos.filter(function (x) { return x.auftrag === s.auftrag && x.position === s.position; })[0];
     var bezug = p && +p.vorgabe > 0 ? p.vorgabe * 60000 : 3600000;
     $('t-dauer').textContent = dauer(jetzt - s.start); $('t-bezug').textContent = s.auftrag + ' / ' + s.position;
     timerZeichnen('t-timer', ((jetzt - s.start) % bezug) / bezug, hm(s.start), 'var(--akzent)', []);
-    $('t-start').textContent = 'Wechsel';
   } else {
     uhrZeichnen('t-uhr', d, null);
     $('t-dauer').textContent = '–'; $('t-bezug').textContent = 'kein Timeslot';
-    timerZeichnen('t-timer', 1, '–', 'var(--leise)', []); $('t-start').textContent = 'Start';
+    timerZeichnen('t-timer', 1, '–', 'var(--leise)', []);
   }
   var sum = tagSumme(tagWahl), soll = (+daten.einst.sollTag || 7.7) * 3600000;
-  $('t-summe').textContent = (tagWahl === heuteIso() ? 'Heute ' : L.isoNachDe(tagWahl) + ' ') + L.stunden(Math.round(sum / 900000) / 4) + ' / ' + L.stunden(soll / 3600000) + ' h';
+  $('t-summe').textContent = (tagWahl === heuteIso() ? 'Heute ' : L.isoNachDe(tagWahl) + ' ') + hmDauer(sum) + ' / ' + hmDauer(soll) + ' h';   // 2.0.20: h:mm wie in der Tabelle
   // 2.0.19: Tabelle des Tages nur bei Änderungen neu zeichnen und nie während einer Eingabe darin
   var ae = document.activeElement;
   if (tagSignatur() !== tagSig && !(ae && ae.tagName === 'INPUT' && $('t-slots').contains(ae))) tagTabelle();
@@ -1803,14 +1643,14 @@ function slotOeffnen(i) {
   $('sl-pos').value = s.position === '_UNASSIGNED' ? '' : s.position;
   $('sl-von').value = hm(s.start); $('sl-bis').value = s.ende ? hm(s.ende) : '';
   $('sl-plan').value = +s.planMin > 0 ? s.planMin : ''; $('sl-teil').value = ''; $('sl-bem').value = s.bem || '';
-  $('sl-info').textContent = 'Status ' + s.status + ' · Dauer ' + L.stunden(Math.round(slotDauer(s) / 900000) / 4) + ' h';
+  $('sl-info').textContent = 'Status ' + s.status + ' · Dauer ' + hmDauer(slotDauer(s)) + ' h';   // 2.0.20: wie in der Tabelle
   $('sl-park').textContent = s.status === 'parked' ? 'Parken aufheben' : 'Parken';
   zeige('slot');
 }
 function slotZurueck() {
   slotIdx = -1; slotNeuIdx = -1;
   if (slotVon === 'monat') { slotVon = 'tag'; monatZeigen(); return; }   // 2.0.16: zurück zur Monatstabelle
-  tagAuswahl(); tagTabelle(); tagAnzeigen(); zeige('tag');
+  tagTabelle(); tagAnzeigen(); zeige('tag');
 }
 $('sl-zurueck').onclick = slotZurueck;
 $('sl-abbrechen').onclick = function () {                              // 2.0.15: neuer, nicht gespeicherter Timeslot entfällt
@@ -2129,7 +1969,7 @@ var einstVon = '';
 function einstZurueck() {
   var n = einstVon; einstVon = '';
   if (n === 'audit' && aktuell.id && auditById(aktuell.id)) { oeffneAudit(aktuell.id); return; }
-  if (n === 'tag') { tagAuswahl(); tagAnzeigen(); zeige('tag'); return; }
+  if (n === 'tag') { tagTabelle(); tagAnzeigen(); zeige('tag'); return; }
   if (n === 'monat') { monatZeigen(); return; }
   if (n === 'edit' || n === 'kdok' || n === 'slot') { zeige(n); return; }
   zeigeListe();
